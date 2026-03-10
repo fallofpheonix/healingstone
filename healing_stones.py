@@ -36,6 +36,7 @@ import sys
 import glob
 import time
 import json
+import csv
 import struct
 import logging
 import argparse
@@ -96,18 +97,40 @@ def load_ply(filepath: str) -> dict:
                 elements[current_elem] = {"count": int(parts[2]), "props": []}
             elif line.startswith("property") and current_elem:
                 parts = line.split()
-                elements[current_elem]["props"].append({"type": parts[1], "name": parts[-1]})
+                if parts[1] == "list" and len(parts) >= 5:
+                    elements[current_elem]["props"].append({
+                        "type": "list",
+                        "count_type": parts[2],
+                        "item_type": parts[3],
+                        "name": parts[4],
+                    })
+                else:
+                    elements[current_elem]["props"].append({"type": parts[1], "name": parts[-1]})
 
         n_verts = elements.get("vertex", {}).get("count", 0)
         n_faces = elements.get("face",   {}).get("count", 0)
         vert_props = elements.get("vertex", {}).get("props", [])
 
-        # Build format string for binary
-        fmt_map = {"float": "f", "double": "d", "int": "i", "uint": "I",
-                   "short": "h", "ushort": "H", "uchar": "B", "char": "b"}
-        vert_fmt_chars = [fmt_map.get(p["type"], "f") for p in vert_props]
-        vert_fmt = ("<" if is_binary_little else ">") + "".join(vert_fmt_chars)
-        vert_size = struct.calcsize(vert_fmt)
+        np_type_map = {
+            "float": "f4",
+            "double": "f8",
+            "int": "i4",
+            "uint": "u4",
+            "short": "i2",
+            "ushort": "u2",
+            "uchar": "u1",
+            "char": "i1",
+        }
+        struct_type_map = {
+            "float": "f",
+            "double": "d",
+            "int": "i",
+            "uint": "I",
+            "short": "h",
+            "ushort": "H",
+            "uchar": "B",
+            "char": "b",
+        }
 
         prop_names = [p["name"] for p in vert_props]
 
@@ -146,41 +169,51 @@ def load_ply(filepath: str) -> dict:
                 idx += 1 + n
         else:
             endian = "<" if is_binary_little else ">"
-            raw = f.read(n_verts * vert_size)
-            data = np.frombuffer(raw, dtype=np.dtype(vert_fmt))
-            for i, name in enumerate(prop_names):
-                col = data[:, i] if data.ndim > 1 else data
-                # handle structured array
-            # Use structured approach
-            dt_fields = [(p["name"], fmt_map.get(p["type"], "f")) for p in vert_props]
-            dt = np.dtype([(n, (endian + t)) for n, t in dt_fields])
-            f.seek(0)
-            # re-read properly
-            with open(filepath, "rb") as f2:
-                while True:
-                    line = f2.readline().decode("ascii", errors="replace").strip()
-                    if line == "end_header":
-                        break
-                raw_v = np.frombuffer(f2.read(n_verts * dt.itemsize), dtype=dt)
-                for name in prop_names:
-                    if name in raw_v.dtype.names:
-                        if   name == "x":  vertices[:, 0] = raw_v[name]
-                        elif name == "y":  vertices[:, 1] = raw_v[name]
-                        elif name == "z":  vertices[:, 2] = raw_v[name]
-                        elif name == "nx" and normals is not None: normals[:, 0] = raw_v[name]
-                        elif name == "ny" and normals is not None: normals[:, 1] = raw_v[name]
-                        elif name == "nz" and normals is not None: normals[:, 2] = raw_v[name]
-                        elif name in ("red", "r") and colors is not None:
-                            colors[:, 0] = raw_v[name].astype(float) / 255.0
-                        elif name in ("green", "g") and colors is not None:
-                            colors[:, 1] = raw_v[name].astype(float) / 255.0
-                        elif name in ("blue", "b") and colors is not None:
-                            colors[:, 2] = raw_v[name].astype(float) / 255.0
-                # Faces (binary)
-                faces = []
+            dt_fields = []
+            for p in vert_props:
+                if p["type"] == "list":
+                    raise ValueError(f"Unsupported list-type vertex property in {filepath}: {p}")
+                np_type = np_type_map.get(p["type"])
+                if np_type is None:
+                    raise ValueError(f"Unsupported vertex property type '{p['type']}' in {filepath}")
+                dt_fields.append((p["name"], endian + np_type))
+            dt = np.dtype(dt_fields)
+            raw_v = np.frombuffer(f.read(n_verts * dt.itemsize), dtype=dt, count=n_verts)
+
+            for name in prop_names:
+                if name in raw_v.dtype.names:
+                    if   name == "x":  vertices[:, 0] = raw_v[name]
+                    elif name == "y":  vertices[:, 1] = raw_v[name]
+                    elif name == "z":  vertices[:, 2] = raw_v[name]
+                    elif name == "nx" and normals is not None: normals[:, 0] = raw_v[name]
+                    elif name == "ny" and normals is not None: normals[:, 1] = raw_v[name]
+                    elif name == "nz" and normals is not None: normals[:, 2] = raw_v[name]
+                    elif name in ("red", "r") and colors is not None:
+                        colors[:, 0] = raw_v[name].astype(float) / 255.0
+                    elif name in ("green", "g") and colors is not None:
+                        colors[:, 1] = raw_v[name].astype(float) / 255.0
+                    elif name in ("blue", "b") and colors is not None:
+                        colors[:, 2] = raw_v[name].astype(float) / 255.0
+
+            # Faces (binary)
+            faces = []
+            face_props = elements.get("face", {}).get("props", [])
+            face_list_prop = next((p for p in face_props if p.get("type") == "list"), None)
+            if n_faces > 0:
+                if face_list_prop is None:
+                    raise ValueError(f"Unsupported face element format in {filepath}: missing list property")
+                count_fmt = struct_type_map.get(face_list_prop["count_type"])
+                item_fmt = struct_type_map.get(face_list_prop["item_type"])
+                if count_fmt is None or item_fmt is None:
+                    raise ValueError(
+                        f"Unsupported face list types in {filepath}: "
+                        f"{face_list_prop['count_type']} {face_list_prop['item_type']}"
+                    )
+                count_size = struct.calcsize(endian + count_fmt)
+                item_size = struct.calcsize(endian + item_fmt)
                 for _ in range(n_faces):
-                    n_vf = struct.unpack(endian + "B", f2.read(1))[0]
-                    face = list(struct.unpack(endian + "I" * n_vf, f2.read(4 * n_vf)))
+                    n_vf = struct.unpack(endian + count_fmt, f.read(count_size))[0]
+                    face = list(struct.unpack(endian + item_fmt * n_vf, f.read(item_size * n_vf)))
                     faces.append(face)
 
         faces = np.array(faces, dtype=object) if faces else np.empty((0,), dtype=object)
@@ -488,34 +521,67 @@ def compute_fpfh(vertices: np.ndarray, normals: np.ndarray,
 # ─────────────────────────────────────────────
 
 def fragment_descriptor(vertices: np.ndarray, normals: np.ndarray,
-                         break_mask: np.ndarray, fpfh: np.ndarray,
-                         n_keypoints: int = 64) -> np.ndarray:
+                         break_mask: np.ndarray, break_score: np.ndarray,
+                         fpfh_ms: np.ndarray, n_keypoints: int = 64,
+                         n_hist_bins: int = 16) -> np.ndarray:
     """
-    Global descriptor for a fragment's break surface:
-    - Sample n_keypoints from break surface
-    - Stack their FPFH vectors
-    - Summarise: mean, std, max, min → fixed-length vector
+    Multi-scale descriptor for a fragment's break surface:
+    - Multi-scale FPFH summary (mean/std/max/min)
+    - Break-score distribution
+    - Break geometry distribution (radius + normal consistency)
     """
     break_idxs = np.where(break_mask)[0]
     if len(break_idxs) == 0:
         break_idxs = np.arange(len(vertices))
 
+    if len(break_idxs) == 0:
+        return np.zeros(16, dtype=np.float32)
+
     # Farthest point sampling for diversity
     idxs = farthest_point_sample(vertices[break_idxs], n_keypoints)
-    sampled_fpfh = fpfh[break_idxs[idxs]]
+    sampled_fpfh = fpfh_ms[break_idxs[idxs]]
+    break_pts = vertices[break_idxs]
+    break_normals = normals[break_idxs]
+    break_scores = break_score[break_idxs]
 
-    # Aggregate statistics
-    desc = np.concatenate([
+    # Multi-scale FPFH summary
+    fpfh_stats = np.concatenate([
         sampled_fpfh.mean(axis=0),
         sampled_fpfh.std(axis=0),
         sampled_fpfh.max(axis=0),
         sampled_fpfh.min(axis=0),
     ])
-    return desc.astype(np.float32)
+
+    # Break-score statistics
+    score_stats = np.array([
+        break_scores.mean(),
+        break_scores.std(),
+        np.percentile(break_scores, 75),
+        np.percentile(break_scores, 90),
+        break_scores.max(),
+        len(break_idxs) / max(len(vertices), 1),
+    ], dtype=np.float32)
+
+    # Radius histogram around break centroid
+    center = break_pts.mean(axis=0)
+    rad = np.linalg.norm(break_pts - center, axis=1)
+    rad_norm = rad / (rad.max() + 1e-10)
+    rad_hist, _ = np.histogram(rad_norm, bins=n_hist_bins, range=(0, 1), density=True)
+
+    # Normal-consistency histogram (orientation-agnostic)
+    mean_n = break_normals.mean(axis=0)
+    mean_n /= (np.linalg.norm(mean_n) + 1e-10)
+    cosang = np.abs(np.clip(break_normals @ mean_n, -1, 1))
+    normal_hist, _ = np.histogram(cosang, bins=n_hist_bins, range=(0, 1), density=True)
+
+    desc = np.concatenate([fpfh_stats, score_stats, rad_hist, normal_hist]).astype(np.float32)
+    return desc
 
 
 def farthest_point_sample(pts: np.ndarray, n: int) -> np.ndarray:
     """Farthest Point Sampling for diverse keypoint selection."""
+    if len(pts) == 0 or n <= 0:
+        return np.array([], dtype=int)
     n = min(n, len(pts))
     idxs  = np.zeros(n, dtype=int)
     dists = np.full(len(pts), np.inf)
@@ -527,25 +593,160 @@ def farthest_point_sample(pts: np.ndarray, n: int) -> np.ndarray:
     return idxs
 
 
-def build_pairwise_features(descs: list, frag_names: list) -> tuple:
+def build_pair_feature(desc_a: np.ndarray, desc_b: np.ndarray) -> np.ndarray:
+    """Pair feature with similarity priors."""
+    diff = np.abs(desc_a - desc_b)
+    product = desc_a * desc_b
+    na = np.linalg.norm(desc_a) + 1e-10
+    nb = np.linalg.norm(desc_b) + 1e-10
+    cosine = float(np.dot(desc_a, desc_b) / (na * nb))
+    l2 = float(np.linalg.norm(desc_a - desc_b))
+    norm_ratio = float(min(na, nb) / max(na, nb))
+    return np.concatenate([diff, product, np.array([cosine, l2, norm_ratio], dtype=np.float32)])
+
+
+def build_pairwise_features(descs: list, frag_names: list, candidate_pairs: list = None) -> tuple:
     """
-    Build pairwise feature matrix for all fragment pairs.
-    Each pair (i, j) → feature vector = |desc_i - desc_j| ⊕ desc_i * desc_j
+    Build pairwise feature matrix for selected fragment pairs.
     """
     n = len(descs)
-    pairs = []
+    if n < 2:
+        return np.empty((0, 0), dtype=np.float32), [], []
+
+    pairs = candidate_pairs if candidate_pairs is not None else list(itertools.combinations(range(n), 2))
     pair_names = []
     X = []
 
-    for i, j in itertools.combinations(range(n), 2):
-        diff    = np.abs(descs[i] - descs[j])
-        product = descs[i] * descs[j]
-        feat    = np.concatenate([diff, product])
+    for i, j in pairs:
+        feat = build_pair_feature(descs[i], descs[j])
         X.append(feat)
-        pairs.append((i, j))
         pair_names.append(f"{frag_names[i]} vs {frag_names[j]}")
 
-    return np.array(X, dtype=np.float32), pairs, pair_names
+    if len(X) == 0:
+        feat_dim = 2 * len(descs[0]) + 3
+        return np.empty((0, feat_dim), dtype=np.float32), [], []
+    return np.array(X, dtype=np.float32), list(pairs), pair_names
+
+
+def propose_candidate_pairs(descs: list, top_k: int = 6) -> list:
+    """
+    Two-stage candidate pruning:
+    - per-fragment top-k cosine neighbors
+    - keep reciprocal neighbors
+    """
+    n = len(descs)
+    if n < 2:
+        return []
+    arr = np.array(descs, dtype=np.float32)
+    norms = np.linalg.norm(arr, axis=1, keepdims=True) + 1e-10
+    sim = (arr / norms) @ (arr / norms).T
+    np.fill_diagonal(sim, -np.inf)
+
+    top_sets = []
+    k = max(1, min(top_k, n - 1))
+    for i in range(n):
+        js = np.argsort(sim[i])[::-1][:k]
+        top_sets.append(set(int(j) for j in js))
+
+    pairs = set()
+    for i in range(n):
+        for j in top_sets[i]:
+            if i in top_sets[j]:
+                a, b = min(i, j), max(i, j)
+                if a != b:
+                    pairs.add((a, b))
+
+    if not pairs:
+        return list(itertools.combinations(range(n), 2))
+    return sorted(pairs)
+
+
+def load_pair_labels(labels_path: str, frag_names: list) -> dict:
+    """
+    Load optional supervised pair labels from CSV.
+    CSV columns: frag_a, frag_b, label
+    Names can be full path, basename, or stem.
+    """
+    if not labels_path:
+        return {}
+    if not os.path.exists(labels_path):
+        log.warning(f"Pair labels file not found: {labels_path}")
+        return {}
+
+    name_to_idx = {}
+    for i, fn in enumerate(frag_names):
+        p = Path(fn)
+        name_to_idx[str(p)] = i
+        name_to_idx[p.name] = i
+        name_to_idx[p.stem] = i
+
+    labels = {}
+    with open(labels_path, "r", newline="") as f:
+        reader = csv.DictReader(f)
+        required = {"frag_a", "frag_b", "label"}
+        if not required.issubset(set(reader.fieldnames or [])):
+            raise ValueError(f"labels csv must include columns: {sorted(required)}")
+        for row in reader:
+            a = (row.get("frag_a") or "").strip()
+            b = (row.get("frag_b") or "").strip()
+            y = (row.get("label") or "").strip()
+            if a not in name_to_idx or b not in name_to_idx:
+                continue
+            i, j = name_to_idx[a], name_to_idx[b]
+            if i == j:
+                continue
+            try:
+                label = 1 if int(float(y)) > 0 else 0
+            except Exception:
+                continue
+            pair = (min(i, j), max(i, j))
+            labels[pair] = label
+    log.info(f"Loaded {len(labels)} labeled pairs from {labels_path}")
+    return labels
+
+
+def build_training_data(descs: list, all_pairs: list, pair_labels: dict,
+                        hard_negative_ratio: int = 4) -> tuple:
+    """
+    Build training sets with hard-negative mining.
+    If labels are absent, fall back to synthetic positives + hard negatives.
+    """
+    X_pos, X_neg = [], []
+    score_candidates = []
+
+    for i, j in all_pairs:
+        feat = build_pair_feature(descs[i], descs[j])
+        if (i, j) in pair_labels:
+            if pair_labels[(i, j)] == 1:
+                X_pos.append(feat)
+            else:
+                X_neg.append(feat)
+        else:
+            na = np.linalg.norm(descs[i]) + 1e-10
+            nb = np.linalg.norm(descs[j]) + 1e-10
+            cosine = float(np.dot(descs[i], descs[j]) / (na * nb))
+            score_candidates.append((cosine, feat))
+
+    if len(pair_labels) == 0:
+        # Self-supervised fallback
+        for d in descs:
+            d2 = d + np.random.normal(0, 0.015, size=d.shape)
+            X_pos.append(build_pair_feature(d, d2))
+        score_candidates = []
+        for i, j in all_pairs:
+            na = np.linalg.norm(descs[i]) + 1e-10
+            nb = np.linalg.norm(descs[j]) + 1e-10
+            cosine = float(np.dot(descs[i], descs[j]) / (na * nb))
+            score_candidates.append((cosine, build_pair_feature(descs[i], descs[j])))
+
+    score_candidates.sort(key=lambda t: t[0], reverse=True)
+    target_neg = max(len(X_neg), max(1, len(X_pos)) * hard_negative_ratio)
+    hard_neg_feats = [feat for _, feat in score_candidates[:target_neg]]
+    X_neg.extend(hard_neg_feats)
+
+    X_pos = np.array(X_pos, dtype=np.float32) if X_pos else np.empty((0, 0), dtype=np.float32)
+    X_neg = np.array(X_neg, dtype=np.float32) if X_neg else np.empty((0, 0), dtype=np.float32)
+    return X_pos, X_neg
 
 
 def augment_fragment_pair(desc_a: np.ndarray, desc_b: np.ndarray,
@@ -577,38 +778,34 @@ def train_match_classifier(X_pos: np.ndarray, X_neg: np.ndarray,
     Train RandomForest + GradientBoosting ensemble to predict fragment matches.
     Uses cross-validation to report accuracy.
     """
+    if len(X_pos) == 0 or len(X_neg) == 0:
+        log.warning("Insufficient class diversity for training; skipping ML model.")
+        return None
+
     if augment:
-        aug_pos, aug_neg = [], []
-        for x in X_pos:
-            n = len(x) // 2
-            da, db = x[:n], x[n:]  # rough split
-            for feat, _ in augment_fragment_pair(da, db, 1, n_aug=8):
-                aug_pos.append(feat)
-        for x in X_neg:
-            n = len(x) // 2
-            da, db = x[:n], x[n:]
-            for feat, _ in augment_fragment_pair(da, db, 0, n_aug=8):
-                aug_neg.append(feat)
-        X_pos_aug = np.vstack([X_pos] + ([np.array(aug_pos)] if aug_pos else []))
-        X_neg_aug = np.vstack([X_neg] + ([np.array(aug_neg)] if aug_neg else []))
+        aug_pos = X_pos + np.random.normal(0, 0.01, size=X_pos.shape)
+        aug_neg = X_neg + np.random.normal(0, 0.01, size=X_neg.shape)
+        X_pos_aug = np.vstack([X_pos, aug_pos]).astype(np.float32)
+        X_neg_aug = np.vstack([X_neg, aug_neg]).astype(np.float32)
     else:
-        X_pos_aug, X_neg_aug = X_pos, X_neg
+        X_pos_aug = X_pos.astype(np.float32)
+        X_neg_aug = X_neg.astype(np.float32)
 
-    # Balance classes
-    n_min = min(len(X_pos_aug), len(X_neg_aug))
-    X_pos_bal = X_pos_aug[:n_min]
-    X_neg_bal = X_neg_aug[:n_min]
-
-    X = np.vstack([X_pos_bal, X_neg_bal])
-    y = np.array([1]*len(X_pos_bal) + [0]*len(X_neg_bal))
+    X = np.vstack([X_pos_aug, X_neg_aug])
+    y = np.array([1] * len(X_pos_aug) + [0] * len(X_neg_aug))
+    class_counts = np.bincount(y, minlength=2).astype(np.float64)
+    class_weights = np.zeros(2, dtype=np.float64)
+    nonzero = class_counts > 0
+    class_weights[nonzero] = len(y) / (2.0 * class_counts[nonzero])
+    sample_weights = np.array([class_weights[label] for label in y], dtype=np.float64)
 
     model = Pipeline([
         ("scaler", StandardScaler()),
         ("clf", RandomForestClassifier(
-            n_estimators=200,
-            max_depth=12,
+            n_estimators=400,
+            max_depth=16,
             min_samples_leaf=2,
-            class_weight="balanced",
+            class_weight=None,
             random_state=42,
             n_jobs=-1
         ))
@@ -621,10 +818,10 @@ def train_match_classifier(X_pos: np.ndarray, X_neg: np.ndarray,
     # Cross-validation
     if len(y) >= 6:
         cv = StratifiedKFold(n_splits=min(5, len(y)//2), shuffle=True, random_state=42)
-        cv_scores = cross_val_score(model, X, y, cv=cv, scoring="roc_auc")
+        cv_scores = cross_val_score(model, X, y, cv=cv, scoring="average_precision")
         log.info(f"  CV ROC-AUC: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
 
-    model.fit(X, y)
+    model.fit(X, y, clf__sample_weight=sample_weights)
     return model
 
 
@@ -790,6 +987,37 @@ def align_fragments(frag_src: dict, frag_tgt: dict,
 
     return {"T": T_icp, "inlier_ratio": inlier_ratio, "icp_rmse": rmse,
             "n_correspondences": n_corr, "success": rmse < 0.1}
+
+
+def reciprocal_top_pairs(match_matrix: np.ndarray, candidate_pairs: list,
+                         top_k: int = 3) -> list:
+    """Keep only reciprocal top-k neighbors from candidate graph."""
+    n = match_matrix.shape[0]
+    nbrs = {i: [] for i in range(n)}
+    for i, j in candidate_pairs:
+        nbrs[i].append((j, float(match_matrix[i, j])))
+        nbrs[j].append((i, float(match_matrix[i, j])))
+    top_sets = {}
+    for i in range(n):
+        ranked = sorted(nbrs[i], key=lambda x: x[1], reverse=True)[:max(1, top_k)]
+        top_sets[i] = set(j for j, _ in ranked)
+
+    keep = []
+    for i, j in candidate_pairs:
+        if j in top_sets[i] and i in top_sets[j]:
+            keep.append((i, j))
+    return keep if keep else candidate_pairs
+
+
+def alignment_quality_score(result: dict) -> float:
+    """Convert alignment diagnostics into [0,1] score."""
+    if result.get("n_correspondences", 0) <= 0:
+        return 0.0
+    inlier = np.clip(float(result.get("inlier_ratio", 0.0)) / 0.2, 0.0, 1.0)
+    rmse = float(result.get("icp_rmse", np.inf))
+    rmse_term = float(np.exp(-rmse / 0.08)) if np.isfinite(rmse) else 0.0
+    corr = float(np.tanh(float(result.get("n_correspondences", 0)) / 800.0))
+    return float(0.45 * inlier + 0.45 * rmse_term + 0.10 * corr)
 
 
 # ─────────────────────────────────────────────
@@ -985,7 +1213,8 @@ def plot_reconstruction(fragments: list, transforms: dict,
 
 def run_pipeline(data_dir: str, out_dir: str = "output",
                  voxel_size: float = 0.03, k_neighbors: int = 15,
-                 n_keypoints: int = 64):
+                 n_keypoints: int = 64, labels_path: str = None,
+                 candidate_top_k: int = 6, align_top_k: int = 12):
     """
     End-to-end pipeline:
       Load → Preprocess → Classify → Extract features →
@@ -1032,6 +1261,10 @@ def run_pipeline(data_dir: str, out_dir: str = "output",
     n_frags = len(fragments)
     log.info(f"\n{'='*50}")
     log.info(f"Loaded {n_frags} fragments successfully.")
+    if n_frags == 0:
+        raise RuntimeError("No fragments were loaded successfully. Check loader errors above.")
+    if n_frags < 2:
+        raise RuntimeError("At least 2 fragments are required to build pairwise matches.")
 
     # ── 3. Surface classification ─────────────────────────────
     log.info("\n[STEP 3] Surface Classification")
@@ -1045,44 +1278,42 @@ def run_pipeline(data_dir: str, out_dir: str = "output",
         all_feats.append(feats)
         plot_break_classification(frag, mask, score, Path(name).stem, out_dir)
 
-    # ── 4. FPFH feature extraction ────────────────────────────
-    log.info("\n[STEP 4] FPFH Feature Extraction")
+    # ── 4. Multi-scale FPFH feature extraction ────────────────
+    log.info("\n[STEP 4] Multi-scale FPFH Feature Extraction")
     all_fpfh, all_descs = [], []
     for idx, (frag, name) in enumerate(zip(fragments, frag_names)):
         log.info(f"  Fragment {idx+1}/{n_frags}: {Path(name).name}")
-        fpfh = compute_fpfh(frag["vertices"], frag["normals"],
-                             k=k_neighbors, n_bins=11)
-        all_fpfh.append(fpfh)
+        fpfh_s = compute_fpfh(frag["vertices"], frag["normals"], k=k_neighbors, n_bins=11)
+        fpfh_m = compute_fpfh(
+            frag["vertices"], frag["normals"],
+            k=max(k_neighbors + 4, int(k_neighbors * 2.0)), n_bins=11
+        )
+        fpfh_l = compute_fpfh(
+            frag["vertices"], frag["normals"],
+            k=max(k_neighbors + 8, int(k_neighbors * 3.0)), n_bins=11
+        )
+        fpfh_ms = np.concatenate([fpfh_s, fpfh_m, fpfh_l], axis=1)
+        all_fpfh.append(fpfh_s)
         desc = fragment_descriptor(frag["vertices"], frag["normals"],
-                                    all_break_masks[idx], fpfh, n_keypoints)
+                                   all_break_masks[idx], all_break_scores[idx],
+                                   fpfh_ms, n_keypoints=n_keypoints)
         all_descs.append(desc)
 
-    # ── 5. Pairwise feature matrix ────────────────────────────
-    log.info("\n[STEP 5] Building Pairwise Feature Matrix")
-    X_pairs, all_pairs, pair_names = build_pairwise_features(all_descs, frag_names)
-    log.info(f"  {len(all_pairs)} fragment pairs → feature dim: {X_pairs.shape[1]}")
+    # ── 5. Two-stage candidate generation ─────────────────────
+    log.info("\n[STEP 5] Candidate Pair Generation")
+    candidate_pairs = propose_candidate_pairs(
+        all_descs, top_k=min(max(1, candidate_top_k), n_frags - 1))
+    X_pairs, all_pairs, _ = build_pairwise_features(all_descs, frag_names, candidate_pairs)
+    if len(all_pairs) == 0:
+        raise RuntimeError("No candidate pairs were generated.")
+    log.info(f"  Candidate pairs: {len(all_pairs)} / total {n_frags*(n_frags-1)//2}")
+    log.info(f"  Pair feature dim: {X_pairs.shape[1]}")
 
-    # ── 6. ML Training (self-supervised via synthetic positives) ─
-    log.info("\n[STEP 6] ML Model Training (self-supervised)")
-    # Self-supervised: create synthetic positives by splitting each fragment
-    # into two halves (should match), and use all cross-fragment as negatives
-    synthetic_positives, synthetic_negatives = [], []
-    for i, desc in enumerate(all_descs):
-        # Positive: add noise to same descriptor (same fragment → should match)
-        noise = np.random.normal(0, 0.02, desc.shape)
-        d2    = desc + noise
-        diff    = np.abs(desc - d2)
-        product = desc * d2
-        synthetic_positives.append(np.concatenate([diff, product]))
-
-    for i, j in itertools.combinations(range(n_frags), 2):
-        diff    = np.abs(all_descs[i] - all_descs[j])
-        product = all_descs[i] * all_descs[j]
-        synthetic_negatives.append(np.concatenate([diff, product]))
-
-    X_pos = np.array(synthetic_positives, dtype=np.float32)
-    X_neg = np.array(synthetic_negatives, dtype=np.float32)
-
+    # ── 6. ML training with optional supervision ──────────────
+    log.info("\n[STEP 6] ML Model Training")
+    pair_labels = load_pair_labels(labels_path, frag_names)
+    X_pos, X_neg = build_training_data(all_descs, all_pairs, pair_labels, hard_negative_ratio=4)
+    log.info(f"  Training pairs → positives: {len(X_pos)}, negatives: {len(X_neg)}")
     model = train_match_classifier(X_pos, X_neg, augment=True)
 
     # ── 7. Predict matches ────────────────────────────────────
@@ -1100,46 +1331,52 @@ def run_pipeline(data_dir: str, out_dir: str = "output",
     else:
         # Fallback: cosine similarity between descriptors
         log.info("  Using cosine similarity fallback.")
-        descs_arr = np.array(all_descs)
+        descs_arr = np.array(all_descs, dtype=np.float32)
         norms = np.linalg.norm(descs_arr, axis=1, keepdims=True) + 1e-10
-        normed = descs_arr / norms
-        sim = normed @ normed.T
+        sim = (descs_arr / norms) @ (descs_arr / norms).T
         for i, j in all_pairs:
             match_matrix[i, j] = float(sim[i, j])
             match_matrix[j, i] = float(sim[i, j])
 
-    # Rank pairs by match probability
-    top_pairs = sorted(all_pairs, key=lambda p: match_matrix[p[0], p[1]], reverse=True)
-    log.info("\n  Top 10 predicted matches:")
-    for rank, (i, j) in enumerate(top_pairs[:10]):
+    reciprocal_pairs = reciprocal_top_pairs(
+        match_matrix, all_pairs, top_k=min(3, max(1, n_frags - 1)))
+    top_pairs_stage1 = sorted(reciprocal_pairs, key=lambda p: match_matrix[p[0], p[1]], reverse=True)
+    log.info(f"  Reciprocal candidate pairs: {len(top_pairs_stage1)}")
+    log.info("\n  Top 10 predicted matches (pre-alignment):")
+    for rank, (i, j) in enumerate(top_pairs_stage1[:10]):
         score = match_matrix[i, j]
         log.info(f"    #{rank+1:2d} | score={score:.3f} | "
                  f"{Path(frag_names[i]).stem} ↔ {Path(frag_names[j]).stem}")
 
-    plot_match_matrix(match_matrix, frag_names, top_pairs, out_dir)
-
-    # ── 8. Alignment of top matches ───────────────────────────
+    # ── 8. Alignment + score fusion ───────────────────────────
     log.info("\n[STEP 8] Aligning Top Fragment Pairs")
     alignment_results = {}
     transforms = {}
-    n_align = min(5, len(top_pairs))
+    n_align = min(max(1, align_top_k), len(top_pairs_stage1))
+    final_scores = {(i, j): float(match_matrix[i, j]) for (i, j) in all_pairs}
 
-    for rank, (i, j) in enumerate(top_pairs[:n_align]):
-        score = match_matrix[i, j]
+    for rank, (i, j) in enumerate(top_pairs_stage1[:n_align]):
+        base_score = float(match_matrix[i, j])
         name_s = frag_names[i]
         name_t = frag_names[j]
         log.info(f"\n  Aligning pair #{rank+1}: {Path(name_s).stem} → {Path(name_t).stem} "
-                 f"(score={score:.3f})")
+                 f"(score={base_score:.3f})")
 
         result = align_fragments(
             fragments[i], fragments[j],
             all_fpfh[i], all_fpfh[j],
             all_break_masks[i], all_break_masks[j])
 
+        a_score = alignment_quality_score(result)
+        fused_score = float(0.55 * base_score + 0.45 * a_score)
+        final_scores[(i, j)] = fused_score
+
         alignment_results[f"{Path(name_s).stem}_{Path(name_t).stem}"] = {
             "fragment_a": Path(name_s).name,
             "fragment_b": Path(name_t).name,
-            "match_score": float(score),
+            "classifier_score": base_score,
+            "alignment_score": float(a_score),
+            "final_score": fused_score,
             "icp_rmse":    float(result["icp_rmse"]),
             "inlier_ratio": float(result["inlier_ratio"]),
             "n_correspondences": int(result["n_correspondences"]),
@@ -1151,6 +1388,19 @@ def run_pipeline(data_dir: str, out_dir: str = "output",
 
         plot_alignment(fragments[i]["vertices"], fragments[j]["vertices"],
                        result["T"], name_s, name_t, out_dir)
+
+    for (i, j), s in final_scores.items():
+        match_matrix[i, j] = float(s)
+        match_matrix[j, i] = float(s)
+
+    top_pairs = sorted(all_pairs, key=lambda p: match_matrix[p[0], p[1]], reverse=True)
+    log.info("\n  Top 10 predicted matches (post-alignment fusion):")
+    for rank, (i, j) in enumerate(top_pairs[:10]):
+        score = match_matrix[i, j]
+        log.info(f"    #{rank+1:2d} | score={score:.3f} | "
+                 f"{Path(frag_names[i]).stem} ↔ {Path(frag_names[j]).stem}")
+
+    plot_match_matrix(match_matrix, frag_names, top_pairs, out_dir)
 
     # Save aligned fragments
     for name, T_list in transforms.items():
@@ -1170,7 +1420,8 @@ def run_pipeline(data_dir: str, out_dir: str = "output",
 
     # ── 10. Metrics report ────────────────────────────────────
     log.info("\n[STEP 9] Evaluation Report")
-    metrics = evaluate_reconstruction(match_matrix, [], all_pairs, frag_names)
+    true_pairs = [pair for pair, lbl in pair_labels.items() if lbl == 1]
+    metrics = evaluate_reconstruction(match_matrix, true_pairs, all_pairs, frag_names)
 
     elapsed = time.time() - t0
     report = {
@@ -1179,6 +1430,14 @@ def run_pipeline(data_dir: str, out_dir: str = "output",
         "runtime_seconds": round(elapsed, 2),
         "voxel_size": voxel_size,
         "k_neighbors": k_neighbors,
+        "candidate_top_k": candidate_top_k,
+        "align_top_k": align_top_k,
+        "labels_path": labels_path,
+        "training_pairs": {
+            "positives": int(len(X_pos)),
+            "negatives": int(len(X_neg)),
+            "supervised_labels": int(len(pair_labels)),
+        },
         "break_surface_stats": [
             {"fragment": Path(frag_names[i]).name,
              "break_pct": round(float(all_break_masks[i].mean() * 100), 1)}
