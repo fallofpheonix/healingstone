@@ -1,0 +1,252 @@
+{
+  "config": {
+    "data_dir": "DataSet/3D",
+    "output_dir": "results",
+    "labels_csv": "results/labels.csv",
+    "sample_points": 40000,
+    "voxel_size": 0.01,
+    "normal_radius": 0.04,
+    "normal_max_nn": 64,
+    "outlier_nb_neighbors": 24,
+    "outlier_std_ratio": 1.8,
+    "k_neighbors": 24,
+    "fpfh_radius": 0.06,
+    "fpfh_max_nn": 100,
+    "dbscan_eps": 0.04,
+    "dbscan_min_samples": 24,
+    "n_keypoints": 256,
+    "candidate_top_k": 4,
+    "align_top_n": 10,
+    "label_suggestions_top_n": 50,
+    "threshold_objective": "accuracy",
+    "min_match_accuracy": 0.8,
+    "augment_rotations": false,
+    "augment_count": 2,
+    "seed": 42,
+    "device": "cpu"
+  },
+  "n_fragments": 17,
+  "candidate_pairs": [
+    [
+      0,
+      8
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      10
+    ],
+    [
+      0,
+      14
+    ],
+    [
+      1,
+      16
+    ],
+    [
+      1,
+      14
+    ],
+    [
+      2,
+      9
+    ],
+    [
+      2,
+      11
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      3,
+      9
+    ],
+    [
+      3,
+      11
+    ],
+    [
+      3,
+      6
+    ],
+    [
+      5,
+      12
+    ],
+    [
+      5,
+      13
+    ],
+    [
+      5,
+      7
+    ],
+    [
+      6,
+      11
+    ],
+    [
+      6,
+      12
+    ],
+    [
+      6,
+      13
+    ],
+    [
+      8,
+      10
+    ],
+    [
+      8,
+      14
+    ],
+    [
+      8,
+      15
+    ],
+    [
+      9,
+      11
+    ],
+    [
+      9,
+      13
+    ],
+    [
+      10,
+      15
+    ],
+    [
+      12,
+      13
+    ],
+    [
+      14,
+      16
+    ]
+  ],
+  "diagnostics": {
+    "n_train_pairs": 50,
+    "n_pos_pairs": 18,
+    "n_neg_pairs": 32,
+    "pairwise_match_accuracy": 1.0,
+    "n_labeled_pairs": 6,
+    "n_candidate_pairs": 26,
+    "selected_threshold": 0.4520839101076126,
+    "metrics_at_selected_threshold": {
+      "threshold": 0.4520839101076126,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "n_labeled_pairs": 6,
+      "tp": 1,
+      "fp": 0,
+      "tn": 5,
+      "fn": 0
+    },
+    "metrics_at_threshold_0_5": {
+      "threshold": 0.5,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "n_labeled_pairs": 6,
+      "tp": 1,
+      "fp": 0,
+      "tn": 5,
+      "fn": 0
+    },
+    "threshold_objective": "accuracy"
+  },
+  "metrics": {
+    "pairwise_match_accuracy": 1.0,
+    "aligned_pairs": 10,
+    "successful_alignments": 10,
+    "mean_icp_rmse": 0.009458479751503272,
+    "mean_chamfer_distance": 0.45867365613147165,
+    "reconstruction_completeness": 0.4446582883731106,
+    "assembled_fragments": 7,
+    "graph_nodes": 17,
+    "graph_edges": 16
+  },
+  "alignment_results": {
+    "1_14": {
+      "prior_score": 0.9971015453338623,
+      "fitness": 0.07847171580372955,
+      "icp_rmse": 0.00950342810043086,
+      "chamfer": 0.20656345827401051,
+      "success": true
+    },
+    "10_15": {
+      "prior_score": 0.8899350166320801,
+      "fitness": 0.09656284124590504,
+      "icp_rmse": 0.009667253268226459,
+      "chamfer": 0.3206519907688473,
+      "success": true
+    },
+    "0_8": {
+      "prior_score": 0.7426030039787292,
+      "fitness": 0.1536773923944839,
+      "icp_rmse": 0.008357446379380403,
+      "chamfer": 0.19328057148370803,
+      "success": true
+    },
+    "8_10": {
+      "prior_score": 0.722363293170929,
+      "fitness": 0.10770231589903721,
+      "icp_rmse": 0.009063440070551643,
+      "chamfer": 0.4509968407661785,
+      "success": true
+    },
+    "3_11": {
+      "prior_score": 0.6950370669364929,
+      "fitness": 0.1432145090681676,
+      "icp_rmse": 0.009897752281415675,
+      "chamfer": 0.3847325332254327,
+      "success": true
+    },
+    "14_16": {
+      "prior_score": 0.6919522881507874,
+      "fitness": 0.02225705329153605,
+      "icp_rmse": 0.010157871565995555,
+      "chamfer": 1.297085164967,
+      "success": true
+    },
+    "1_16": {
+      "prior_score": 0.672278106212616,
+      "fitness": 0.050994895301593915,
+      "icp_rmse": 0.009936222101239,
+      "chamfer": 0.3790674138237775,
+      "success": true
+    },
+    "0_10": {
+      "prior_score": 0.6671546697616577,
+      "fitness": 0.04763894692854158,
+      "icp_rmse": 0.008952507101141465,
+      "chamfer": 0.8372851675238546,
+      "success": true
+    },
+    "8_15": {
+      "prior_score": 0.5836840271949768,
+      "fitness": 0.08990372105126203,
+      "icp_rmse": 0.00943888555362874,
+      "chamfer": 0.3054110374152149,
+      "success": true
+    },
+    "8_14": {
+      "prior_score": 0.5740010142326355,
+      "fitness": 0.11831902159771013,
+      "icp_rmse": 0.009609991093022926,
+      "chamfer": 0.21166238306669133,
+      "success": true
+    }
+  }
+}
