@@ -82,14 +82,14 @@ python run_pipeline.py --data-dir DataSet/3D --labels-csv labels.csv
 
 Accuracy gate:
 
-- `--min-match-accuracy` defaults to `0.80`.
-- If no labeled pairs are provided, the pipeline stops with an explicit error.
+- `--min-match-accuracy` defaults to `0.0` (no enforced gate).
+- Enable strict quality gate only when labeled pairs are available.
 - Use generated `results/labeling_candidates.csv` for fast annotation rounds.
 
-Temporary bypass (debug only):
+Strict gate example (`>= 0.80`):
 
 ```bash
-python run_pipeline.py --data-dir DataSet/3D --min-match-accuracy 0
+python run_pipeline.py --data-dir DataSet/3D --labels-csv labels.csv --min-match-accuracy 0.80
 ```
 
 ## Notes

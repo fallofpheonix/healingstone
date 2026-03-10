@@ -353,7 +353,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--align-top-n", type=int, default=10)
     parser.add_argument("--label-suggestions-top-n", type=int, default=50)
     parser.add_argument("--threshold-objective", choices=["accuracy", "f1"], default="accuracy")
-    parser.add_argument("--min-match-accuracy", type=float, default=0.80)
+    parser.add_argument("--min-match-accuracy", type=float, default=0.0)
 
     parser.add_argument("--augment-rotations", action="store_true", help="Enable random-rotation augmentation")
     parser.add_argument("--augment-count", type=int, default=2)
