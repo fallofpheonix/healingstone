@@ -1,0 +1,18 @@
+{
+  "n_fragments": 4,
+  "adjacent_pairs": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      3
+    ]
+  ],
+  "notes": "Pairs of fragments sharing a real fracture boundary"
+}

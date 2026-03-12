@@ -1,0 +1,202 @@
+{
+  "pipeline": "Healing Stones 3D Fragment Reconstruction",
+  "n_fragments": 4,
+  "runtime_seconds": 9.18,
+  "voxel_size": 0.05,
+  "k_neighbors": 10,
+  "candidate_top_k": 6,
+  "align_top_k": 12,
+  "labels_path": null,
+  "training_pairs": {
+    "positives": 4,
+    "negatives": 6,
+    "supervised_labels": 0
+  },
+  "break_surface_stats": [
+    {
+      "fragment": "fragment_00.ply",
+      "break_pct": 56.7
+    },
+    {
+      "fragment": "fragment_01.ply",
+      "break_pct": 47.8
+    },
+    {
+      "fragment": "fragment_02.ply",
+      "break_pct": 55.8
+    },
+    {
+      "fragment": "fragment_03.ply",
+      "break_pct": 56.7
+    }
+  ],
+  "top_10_matches": [
+    {
+      "rank": 1,
+      "fragment_a": "fragment_00",
+      "fragment_b": "fragment_01",
+      "match_score": 0.1939
+    },
+    {
+      "rank": 2,
+      "fragment_a": "fragment_01",
+      "fragment_b": "fragment_02",
+      "match_score": 0.1933
+    },
+    {
+      "rank": 3,
+      "fragment_a": "fragment_00",
+      "fragment_b": "fragment_02",
+      "match_score": 0.1754
+    },
+    {
+      "rank": 4,
+      "fragment_a": "fragment_01",
+      "fragment_b": "fragment_03",
+      "match_score": 0.1694
+    },
+    {
+      "rank": 5,
+      "fragment_a": "fragment_00",
+      "fragment_b": "fragment_03",
+      "match_score": 0.1643
+    },
+    {
+      "rank": 6,
+      "fragment_a": "fragment_02",
+      "fragment_b": "fragment_03",
+      "match_score": 0.1487
+    }
+  ],
+  "alignment_results": {
+    "fragment_00_fragment_02": {
+      "fragment_a": "fragment_00.ply",
+      "fragment_b": "fragment_02.ply",
+      "classifier_score": 0.04349999874830246,
+      "alignment_score": 0.336666031895308,
+      "final_score": 0.17542471366445497,
+      "icp_rmse": 0.062260597233785325,
+      "inlier_ratio": 0.030612244897959183,
+      "n_correspondences": 569,
+      "success": true
+    },
+    "fragment_00_fragment_01": {
+      "fragment_a": "fragment_00.ply",
+      "fragment_b": "fragment_01.ply",
+      "classifier_score": 0.03500000014901161,
+      "alignment_score": 0.38821858849984153,
+      "final_score": 0.1939483649068851,
+      "icp_rmse": 0.05727124919385317,
+      "inlier_ratio": 0.04938271604938271,
+      "n_correspondences": 520,
+      "success": true
+    },
+    "fragment_01_fragment_02": {
+      "fragment_a": "fragment_01.ply",
+      "fragment_b": "fragment_02.ply",
+      "classifier_score": 0.03150000050663948,
+      "alignment_score": 0.3910061943557914,
+      "final_score": 0.19327778773875787,
+      "icp_rmse": 0.059927218579971846,
+      "inlier_ratio": 0.05714285714285714,
+      "n_correspondences": 436,
+      "success": true
+    },
+    "fragment_01_fragment_03": {
+      "fragment_a": "fragment_01.ply",
+      "fragment_b": "fragment_03.ply",
+      "classifier_score": 0.010499999858438969,
+      "alignment_score": 0.36366558545624594,
+      "final_score": 0.1694245133774521,
+      "icp_rmse": 0.058447516153796654,
+      "inlier_ratio": 0.04054054054054054,
+      "n_correspondences": 503,
+      "success": true
+    },
+    "fragment_02_fragment_03": {
+      "fragment_a": "fragment_02.ply",
+      "fragment_b": "fragment_03.ply",
+      "classifier_score": 0.006500000134110451,
+      "alignment_score": 0.32245829100923995,
+      "final_score": 0.14868123102791872,
+      "icp_rmse": 0.06888151597993092,
+      "inlier_ratio": 0.029411764705882353,
+      "n_correspondences": 635,
+      "success": true
+    },
+    "fragment_00_fragment_03": {
+      "fragment_a": "fragment_00.ply",
+      "fragment_b": "fragment_03.ply",
+      "classifier_score": 0.004000000189989805,
+      "alignment_score": 0.36028556964880964,
+      "final_score": 0.16432850644645874,
+      "icp_rmse": 0.06300489374884308,
+      "inlier_ratio": 0.04,
+      "n_correspondences": 628,
+      "success": true
+    }
+  },
+  "metrics": {
+    "n_fragments": 4,
+    "n_pairs_total": 6,
+    "n_pairs_true": 0,
+    "top_matches": [
+      {
+        "pair": [
+          0,
+          1
+        ],
+        "score": 0.19394835829734802,
+        "names": "artifacts/test_smoke/synthetic_fragments/fragment_00.ply \u2194 artifacts/test_smoke/synthetic_fragments/fragment_01.ply"
+      },
+      {
+        "pair": [
+          1,
+          2
+        ],
+        "score": 0.19327779114246368,
+        "names": "artifacts/test_smoke/synthetic_fragments/fragment_01.ply \u2194 artifacts/test_smoke/synthetic_fragments/fragment_02.ply"
+      },
+      {
+        "pair": [
+          0,
+          2
+        ],
+        "score": 0.1754247099161148,
+        "names": "artifacts/test_smoke/synthetic_fragments/fragment_00.ply \u2194 artifacts/test_smoke/synthetic_fragments/fragment_02.ply"
+      },
+      {
+        "pair": [
+          1,
+          3
+        ],
+        "score": 0.16942451894283295,
+        "names": "artifacts/test_smoke/synthetic_fragments/fragment_01.ply \u2194 artifacts/test_smoke/synthetic_fragments/fragment_03.ply"
+      },
+      {
+        "pair": [
+          0,
+          3
+        ],
+        "score": 0.16432850062847137,
+        "names": "artifacts/test_smoke/synthetic_fragments/fragment_00.ply \u2194 artifacts/test_smoke/synthetic_fragments/fragment_03.ply"
+      },
+      {
+        "pair": [
+          2,
+          3
+        ],
+        "score": 0.14868123829364777,
+        "names": "artifacts/test_smoke/synthetic_fragments/fragment_02.ply \u2194 artifacts/test_smoke/synthetic_fragments/fragment_03.ply"
+      }
+    ]
+  },
+  "output_files": {
+    "classification_plots": "artifacts/test_smoke/results/*_classification.png",
+    "match_matrix": "artifacts/test_smoke/results/match_matrix.png",
+    "alignment_plots": "artifacts/test_smoke/results/align_*.png",
+    "reconstruction": "artifacts/test_smoke/results/full_reconstruction.png",
+    "aligned_fragments": "artifacts/test_smoke/results/aligned_*.ply",
+    "report": "artifacts/test_smoke/results/report.json"
+  }
+}
