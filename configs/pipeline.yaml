@@ -1,0 +1,34 @@
+config_version: 1
+dataset_alias: 3d
+data_dir: null
+output_dir: artifacts
+labels_csv: null
+allow_overwrite_run: false
+
+sample_points: 40000
+voxel_size: 0.01
+normal_radius: 0.04
+normal_max_nn: 64
+outlier_nb_neighbors: 24
+outlier_std_ratio: 1.8
+
+k_neighbors: 24
+fpfh_radius: 0.06
+fpfh_max_nn: 100
+dbscan_eps: 0.04
+dbscan_min_samples: 24
+n_keypoints: 256
+
+candidate_top_k: 4
+align_top_n: 10
+label_suggestions_top_n: 50
+threshold_objective: accuracy
+min_match_accuracy: 0.0
+min_required_accuracy: 0.80
+evaluation_split: test
+
+augment_rotations: false
+augment_count: 2
+
+seed: 42
+device: cpu

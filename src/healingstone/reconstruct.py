@@ -11,8 +11,8 @@ import networkx as nx
 import numpy as np
 import open3d as o3d
 
-from align_fragments import AlignmentResult
-from preprocess import Fragment
+from .align_fragments import AlignmentResult
+from .preprocess import Fragment
 
 LOG = logging.getLogger(__name__)
 

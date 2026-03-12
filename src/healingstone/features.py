@@ -14,7 +14,7 @@ import open3d as o3d
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
 
-from preprocess import Fragment
+from .preprocess import Fragment
 
 LOG = logging.getLogger(__name__)
 

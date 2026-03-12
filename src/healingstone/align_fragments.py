@@ -10,8 +10,8 @@ import numpy as np
 import open3d as o3d
 from sklearn.neighbors import NearestNeighbors
 
-from features import FeatureBundle
-from preprocess import Fragment
+from .features import FeatureBundle
+from .preprocess import Fragment
 
 LOG = logging.getLogger(__name__)
 

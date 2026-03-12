@@ -9,9 +9,9 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from features import FeatureBundle, build_augmented_descriptor
-from preprocess import Fragment
-from train_model import SiameseModelBundle, cosine_similarity_matrix, encode_descriptors, train_siamese_model
+from .features import FeatureBundle, build_augmented_descriptor
+from .preprocess import Fragment
+from .train_model import SiameseModelBundle, cosine_similarity_matrix, encode_descriptors, train_siamese_model
 
 LOG = logging.getLogger(__name__)
 
