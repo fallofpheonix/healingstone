@@ -1,0 +1,7 @@
+config_version: 1
+emb_dim: 64
+epochs: 120
+batch_size: 64
+lr: 0.001
+weight_decay: 0.00001
+margin: 1.0

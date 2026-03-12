@@ -1,99 +1,168 @@
 # Healing Stones 3D Reconstruction Pipeline
 
-Robust end-to-end reconstruction pipeline for fragmented 3D cultural heritage artifacts (.PLY/.OBJ).
+Reproducible, package-first pipeline for fragmented 3D cultural heritage reconstruction (`.PLY/.OBJ`).
 
-## Single-command Run
+## Install
 
-```bash
-python run_pipeline.py --data-dir DataSet/3D --output-dir results --augment-rotations
-```
-
-If your fragments are in a different folder:
-
-```bash
-python run_pipeline.py --data-dir /path/to/fragments --output-dir results
-```
-
-## Installation
-
-Python 3.10-3.12 recommended (Open3D wheels are not available on some 3.13 builds).
+Python `3.10-3.12` is recommended for full runtime dependencies.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
+pip install -e .[runtime]   # open3d/torch for full 3D runtime
+pip install -e .[dev]       # tests + lint + type checks
 ```
 
-## Pipeline Stages
-
-1. Load and validate `.PLY/.OBJ` fragments.
-2. Preprocess point clouds:
-   - denoise
-   - voxel downsample
-   - normalize scale/center
-   - estimate consistent normals
-3. Detect break surfaces using:
-   - curvature
-   - normal variance
-   - roughness
-   - DBSCAN clustering
-4. Extract descriptors:
-   - FPFH
-   - break-surface geometric statistics
-5. Train Siamese embedding model with contrastive loss using:
-   - random rotations
-   - Gaussian noise
-   - partial surface removal
-6. Build similarity matrix and candidate fragment pairs.
-7. Align candidate pairs with:
-   - RANSAC (FPFH)
-   - point-to-plane ICP refinement
-8. Build fragment graph and compute global assembly (maximum spanning tree).
-9. Save reconstructed model and automatic visualizations/metrics.
-
-## Output Artifacts
-
-Saved under `--output-dir`:
-
-- `reconstructed_model.ply`
-- `alignment_metrics.json`
-- `similarity_matrix.png`
-- `final_reconstruction.png`
-- `alignment_pair_*.png`
-- `models/training_loss.png`
-- `pipeline.log`
-- `cache/*.npz` feature cache
-
-## Optional Labels
-
-For pairwise match accuracy reporting, provide labeled pairs CSV:
-
-```csv
-frag_a,frag_b,label
-fragment_01,fragment_02,1
-fragment_01,fragment_05,0
-```
-
-Run:
+Reproducible lock-based install:
 
 ```bash
-python run_pipeline.py --data-dir DataSet/3D --labels-csv labels.csv
+pip install -r requirements.lock
 ```
 
-Accuracy gate:
-
-- `--min-match-accuracy` defaults to `0.0` (no enforced gate).
-- Enable strict quality gate only when labeled pairs are available.
-- Use generated `results/labeling_candidates.csv` for fast annotation rounds.
-
-Strict gate example (`>= 0.80`):
+## Canonical Execution
 
 ```bash
-python run_pipeline.py --data-dir DataSet/3D --labels-csv labels.csv --min-match-accuracy 0.80
+python -m healingstone.run_pipeline
 ```
 
-## Notes
+Console script entrypoints (after install):
 
-- Deterministic seeds are set for `random`, `numpy`, and `torch`.
-- Without labels, match accuracy is reported as `NaN` and the pipeline remains fully automatic.
-- The pipeline is designed to be reusable on other fragmented datasets with identical file formats.
+```bash
+healingstone-run
+healingstone-test
+healingstone-legacy
+```
+
+## Compatibility Wrappers (Deprecated)
+
+These remain supported but emit deprecation warnings:
+
+```bash
+python run_pipeline.py
+python test_pipeline.py
+python healing_stones.py
+```
+
+## Runtime Config Precedence
+
+Precedence order is strict:
+
+```text
+CLI > ENV > YAML
+```
+
+- Config files:
+  - `configs/pipeline.yaml`
+  - `configs/train.yaml`
+  - `configs/datasets.yaml`
+- Environment override prefix: `HEALINGSTONE_`
+- Example:
+
+```bash
+HEALINGSTONE_OUTPUT_DIR=/tmp/artifacts python -m healingstone.run_pipeline
+```
+
+## Path Resolution Policy
+
+Data path resolution:
+1. Explicit CLI/ENV `data_dir` -> use or fail (no fallback).
+2. YAML `data_dir` or `dataset_alias` target.
+3. Legacy fallback `DataSet/3D` with warning.
+4. Hard error.
+
+Artifact root resolution:
+1. Explicit CLI/ENV `output_dir` -> use or fail.
+2. YAML/default canonical root `artifacts`.
+3. Legacy fallback `results` with warning.
+4. Hard error.
+
+All resolved paths are normalized to absolute paths.
+
+## Run-Scoped Artifacts
+
+Outputs are run-scoped:
+
+```text
+artifacts/
+  runs/
+    <run_id>/
+      results/
+      models/
+      logs/
+      cache/
+```
+
+Convenience pointer:
+
+```text
+artifacts/latest -> artifacts/runs/<run_id>
+```
+
+No overwrite by default. Use `--allow-overwrite-run` to reuse an existing `run_id` directory.
+
+## Repository Layout
+
+```text
+.
+├── src/healingstone/
+├── scripts/
+├── configs/
+├── tests/
+├── data/
+│   ├── raw/
+│   │   └── v1/
+│   ├── interim/
+│   └── processed/
+├── artifacts/
+│   └── runs/
+├── pyproject.toml
+├── requirements.lock
+└── README.md
+```
+
+## Metadata and Schema
+
+Each run writes:
+
+- `run_metadata.json` (run id, commit, config hash/version, dataset alias/path, seed/device, dependency versions)
+- `resolved_paths.json`
+- `alignment_metrics.json` (validated against required metrics schema)
+
+Metrics report includes `metrics_schema_version`.
+
+## Accuracy Requirement
+
+Hard gate policy:
+
+- `pairwise_match_accuracy >= min_required_accuracy`
+- default `min_required_accuracy: 0.80`
+- enforcement requires `evaluation_split: test`
+
+Gate is evaluated after final metrics computation and fails the run if unmet.
+
+## Config Versioning
+
+`config_version` is required in both pipeline and train configs.
+Unsupported versions fail fast.
+
+## Tests and Quality Gates
+
+```bash
+ruff check .
+mypy
+pytest
+```
+
+CI runs `ruff`, `mypy`, and `pytest` on Python `3.10`, `3.11`, `3.12`.
+
+## Regenerate Lock File
+
+```bash
+pip-compile pyproject.toml --extra dev -o requirements.lock
+```
+
+## Migration Window
+
+Legacy wrappers and legacy fallback paths are still supported in this release.
+Planned next step is removal after migration stabilization.

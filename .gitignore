@@ -1,6 +1,15 @@
 # Datasets
 DataSet/
-data/
+data/raw/**
+!data/raw/
+!data/raw/3d/
+!data/raw/v1/
+data/interim/**
+data/processed/**
+!data/
+!data/interim/
+!data/processed/
+!data/**/.gitkeep
 
 # OS generated files
 .DS_Store
@@ -18,17 +27,37 @@ __pycache__/
 .venv
 venv/
 ENV/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+*.egg-info/
 
 # Models
 models/
 *.pth
 *.h5
 *.ckpt
+*.pt
+*.npy
 
 # Generated outputs
 output/
 output_subset/
 results/
+!artifacts/results/
+artifacts/results/**
+!artifacts/results/.gitkeep
+!artifacts/models/
+artifacts/models/**
+!artifacts/models/.gitkeep
+artifacts/runs/**
+artifacts/latest
+artifacts/latest_run
+!artifacts/
+!artifacts/runs/
+!artifacts/logs/
+!artifacts/**/.gitkeep
 results_tuned_smoke/
 test_output/
 test_output_patch/
