@@ -1,4 +1,4 @@
-"""End-to-end 3D fragment reconstruction pipeline."""
+"""End-to-end fragment reconstruction pipeline (3D and 2D)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,8 @@ import numpy as np
 from .metrics_schema import attach_schema_version, validate_metrics_schema
 from .runtime_paths import (
     ResolvedRunPaths,
+    _contains_fragments,
+    _contains_images,
     initialize_run_layout,
     resolve_artifact_root,
     resolve_data_dir,
@@ -250,8 +252,106 @@ def _write_error_log(run_paths: ResolvedRunPaths | None, exc: Exception) -> None
     (run_paths.logs_dir / "run_error.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _detect_input_type(data_dir: Path) -> str:
+    """Detect whether data directory contains 3D mesh or 2D image fragments.
+
+    Returns:
+        ``"3d"`` if .PLY/.OBJ files are present.
+        ``"2d"`` if image files (.PNG/.JPG) are present.
+    Raises:
+        FileNotFoundError if neither type is found.
+    """
+    if _contains_fragments(data_dir):
+        return "3d"
+    if _contains_images(data_dir):
+        return "2d"
+    raise FileNotFoundError(
+        f"No fragment files found in {data_dir}. "
+        "Expected .PLY/.OBJ for 3D mode or .PNG/.JPG for 2D mode."
+    )
+
+
+def run_pipeline_2d(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> None:
+    """Execute the 2D fragment reconstruction pipeline."""
+    from healingstone2d.align_fragments_2d import align_candidate_pairs_2d
+    from healingstone2d.edge_detection import detect_edges
+    from healingstone2d.match_fragments_2d import match_fragments
+    from healingstone2d.preprocess_2d import load_and_preprocess_fragments as load_2d
+    from healingstone2d.preprocess_2d import set_deterministic_seed as seed_2d
+    from healingstone2d.reconstruct_2d import assemble_fragments_2d, render_reconstruction
+    from healingstone2d.shape_descriptors import compute_shape_descriptor
+
+    seed_2d(args.seed)
+
+    LOG.info("Detected 2D image fragments — running 2D pipeline")
+
+    fragments = load_2d(run_paths.data_dir)
+    LOG.info("Loaded %d 2D fragments", len(fragments))
+
+    edges = {}
+    descriptors = {}
+    for frag in fragments:
+        edge_bundle = detect_edges(frag.image)
+        edges[frag.idx] = edge_bundle
+        descriptors[frag.idx] = compute_shape_descriptor(frag.image, edge_bundle)
+
+    similarity, candidate_pairs, pair_scores = match_fragments(
+        fragments=fragments,
+        descriptors=descriptors,
+        top_k=args.candidate_top_k,
+    )
+
+    alignments = align_candidate_pairs_2d(
+        fragments=fragments,
+        edges=edges,
+        candidate_pairs=candidate_pairs,
+        pair_scores=pair_scores,
+    )
+
+    assembly = assemble_fragments_2d(
+        fragments=fragments,
+        alignments=alignments,
+        pair_scores=pair_scores,
+    )
+
+    render_reconstruction(
+        fragments=fragments,
+        global_transforms=assembly.global_transforms,
+        output_path=run_paths.results_dir / "reconstructed_2d.png",
+    )
+
+    successful = int(sum(1 for r in alignments.values() if r.success))
+    report = {
+        "pipeline": "2d",
+        "run": {
+            "run_id": run_paths.run_id,
+            "artifact_root": str(run_paths.artifact_root),
+            "run_dir": str(run_paths.run_dir),
+            "results_dir": str(run_paths.results_dir),
+        },
+        "n_fragments": len(fragments),
+        "candidate_pairs": [[int(a), int(b)] for a, b in candidate_pairs],
+        "successful_alignments": successful,
+        "completeness": float(assembly.completeness),
+        "alignment_results": {
+            f"{i}_{j}": {
+                "inlier_ratio": r.inlier_ratio,
+                "rmse": r.rmse if np.isfinite(r.rmse) else None,
+                "success": r.success,
+            }
+            for (i, j), r in alignments.items()
+        },
+    }
+    report_path = run_paths.results_dir / "reconstruction_report.json"
+    report_path.write_text(json.dumps(_json_safe(report), indent=2), encoding="utf-8")
+
+    LOG.info("2D pipeline complete")
+    LOG.info("Reconstructed image: %s", run_paths.results_dir / "reconstructed_2d.png")
+    LOG.info("Report: %s", report_path)
+
+
 def run_pipeline(args: argparse.Namespace) -> None:
-    """Execute full reconstruction pipeline."""
+    """Execute full reconstruction pipeline (auto-detects 3D vs 2D input)."""
     from .align_fragments import align_candidate_pairs
     from .features import extract_all_features
     from .match_fragments import train_and_match_fragments
@@ -290,6 +390,15 @@ def run_pipeline(args: argparse.Namespace) -> None:
         if run_paths.used_legacy_output:
             LOG.warning("Using legacy artifact root fallback: %s", run_paths.artifact_root)
 
+        # Auto-detect input type and dispatch to the appropriate pipeline.
+        input_type = _detect_input_type(run_paths.data_dir)
+        LOG.info("Detected input type: %s", input_type)
+
+        if input_type == "2d":
+            run_pipeline_2d(args, run_paths)
+            return
+
+        # --- 3D pipeline ---
         set_deterministic_seed(args.seed)
 
         labels_csv = run_paths.labels_csv
@@ -306,7 +415,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
                     "Fill the 'label' column with 0/1 values first."
                 )
 
-        LOG.info("Starting reconstruction pipeline")
+        LOG.info("Starting 3D reconstruction pipeline")
         LOG.info("Run directory: %s", run_paths.run_dir)
 
         fragments = load_and_preprocess_fragments(

@@ -45,6 +45,17 @@ def _contains_fragments(path: Path) -> bool:
     return False
 
 
+def _contains_images(path: Path) -> bool:
+    """Check whether *path* contains any supported 2D image files."""
+    if not path.exists():
+        return False
+    patterns = ("*.png", "*.PNG", "*.jpg", "*.JPG", "*.jpeg", "*.JPEG")
+    for pattern in patterns:
+        if next(path.rglob(pattern), None) is not None:
+            return True
+    return False
+
+
 def _check_writable_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
     probe = path / ".write_probe"
@@ -73,15 +84,21 @@ def resolve_data_dir(
     dataset_alias: str,
     aliases: Dict[str, str],
 ) -> tuple[Path, bool]:
-    """Resolve dataset path with strict precedence semantics."""
+    """Resolve dataset path with strict precedence semantics.
+
+    Supports both 3D mesh fragments (.PLY/.OBJ) and 2D image fragments
+    (.PNG/.JPG/.JPEG).
+    """
     used_legacy = False
 
     if data_dir_source in {"cli", "env"}:
         if configured_data_dir is None:
             raise FileNotFoundError("Explicit data_dir source provided but value is empty")
         candidate = _normalize(configured_data_dir)
-        if not _contains_fragments(candidate):
-            raise FileNotFoundError(f"Explicit data_dir has no .PLY/.OBJ fragments: {candidate}")
+        if not _contains_fragments(candidate) and not _contains_images(candidate):
+            raise FileNotFoundError(
+                f"Explicit data_dir has no .PLY/.OBJ/.PNG/.JPG fragments: {candidate}"
+            )
         return candidate, used_legacy
 
     alias_target = aliases.get(dataset_alias)
@@ -92,11 +109,11 @@ def resolve_data_dir(
     else:
         candidate = _normalize(CANONICAL_DATA_DIR)
 
-    if _contains_fragments(candidate):
+    if _contains_fragments(candidate) or _contains_images(candidate):
         return candidate, used_legacy
 
     legacy_candidate = _normalize(LEGACY_DATA_DIR)
-    if _contains_fragments(legacy_candidate):
+    if _contains_fragments(legacy_candidate) or _contains_images(legacy_candidate):
         used_legacy = True
         return legacy_candidate, used_legacy
 
