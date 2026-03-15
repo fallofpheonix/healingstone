@@ -111,6 +111,8 @@ def _icp_2d(
     src = src.copy()
     angle_total = 0.0
     t_total = np.zeros(2, dtype=np.float64)
+    # Track accumulated rotation so we can compose translations correctly.
+    R_total = np.eye(2, dtype=np.float64)
 
     prev_rmse = np.inf
 
@@ -143,8 +145,11 @@ def _icp_2d(
         # Apply to source.
         src = (R @ src.T).T + t
 
+        # Accumulate total transform. In 2D, angles add, but translations must
+        # be composed through the current rotation.
         angle_total += angle_rad
-        t_total += t
+        R_total = R @ R_total
+        t_total = R @ t_total + t
 
         if abs(prev_rmse - rmse) < tol:
             break
