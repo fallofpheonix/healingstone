@@ -49,8 +49,29 @@ def _spanning_tree_transforms(
             continue
         global_transforms[start] = np.eye(3, dtype=np.float32)
         for u, v in nx.bfs_edges(g, source=start):
-            edge_data = g.edges[u, v]
-            T_edge = np.asarray(edge_data.get("transform", np.eye(3)), dtype=np.float32)
+            # Determine the transform in the traversal direction u → v.
+            if (u, v) in alignments:
+                a = alignments[(u, v)]
+                T_edge = np.asarray(a.transform, dtype=np.float32)
+            elif (v, u) in alignments:
+                a = alignments[(v, u)]
+                T_raw = np.asarray(a.transform, dtype=np.float32)
+                try:
+                    T_edge = np.linalg.inv(T_raw)
+                except np.linalg.LinAlgError:
+                    LOG.warning(
+                        "Failed to invert transform between fragments %d and %d; using identity.",
+                        v,
+                        u,
+                    )
+                    T_edge = np.eye(3, dtype=np.float32)
+            else:
+                LOG.warning(
+                    "No alignment found for edge (%d, %d); using identity transform.",
+                    u,
+                    v,
+                )
+                T_edge = np.eye(3, dtype=np.float32)
             # Compose: global[v] = global[u] @ T_edge
             parent_T = global_transforms.get(u, np.eye(3, dtype=np.float32))
             global_transforms[v] = parent_T @ T_edge
