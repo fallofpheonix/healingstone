@@ -87,12 +87,12 @@ def _ransac_rigid_2d(
         return best_T, best_inliers
 
     nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree")
+    nn.fit(dst)
 
     for _ in range(max_iter):
         sample_idx = rng.choice(n, size=3, replace=False)
         T = _kabsch_2d(src[sample_idx], dst[sample_idx])
         aligned = _apply_transform_2d(src, T)
-        nn.fit(dst)
         dists, _ = nn.kneighbors(aligned)
         inliers = (dists.flatten() < inlier_dist)
         if inliers.sum() > best_inliers.sum():
@@ -105,7 +105,6 @@ def _ransac_rigid_2d(
     if best_inliers.sum() >= 3:
         best_T = _kabsch_2d(src[best_inliers], dst[best_inliers])
         aligned = _apply_transform_2d(src, best_T)
-        nn.fit(dst)
         dists, _ = nn.kneighbors(aligned)
         best_inliers = (dists.flatten() < inlier_dist)
 
