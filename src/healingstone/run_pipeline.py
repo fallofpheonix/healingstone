@@ -257,7 +257,7 @@ def _detect_input_type(data_dir: Path) -> str:
 
     Returns:
         ``"3d"`` if .PLY/.OBJ files are present.
-        ``"2d"`` if image files (.PNG/.JPG) are present.
+        ``"2d"`` if image files (.PNG/.JPG/.JPEG) are present.
     Raises:
         FileNotFoundError if neither type is found.
     """
@@ -267,7 +267,7 @@ def _detect_input_type(data_dir: Path) -> str:
         return "2d"
     raise FileNotFoundError(
         f"No fragment files found in {data_dir}. "
-        "Expected .PLY/.OBJ for 3D mode or .PNG/.JPG for 2D mode."
+        "Expected .PLY/.OBJ for 3D mode or .PNG/.JPG/.JPEG for 2D mode."
     )
 
 
