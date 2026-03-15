@@ -285,7 +285,7 @@ def align_candidate_pairs_2d(
         fj = match.frag_idx_j
         if fi not in frag_by_idx or fj not in frag_by_idx:
             continue
-        key = (min(fi, fj), max(fi, fj))
+        key = (fi, fj)
         if key in results:
             continue
 
