@@ -66,7 +66,8 @@ def _remove_background(gray: np.ndarray) -> np.ndarray:
     Assumes fragments are darker than the background (typical scan convention).
     If Otsu produces an inverted result, it is flipped automatically.
     """
-    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    otsu_threshold, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    LOG.debug("Otsu threshold: %d", int(otsu_threshold))
     # Ensure the fragment (foreground) covers less than 85 % of the image.
     if np.mean(binary > 0) > 0.85:
         binary = cv2.bitwise_not(binary)

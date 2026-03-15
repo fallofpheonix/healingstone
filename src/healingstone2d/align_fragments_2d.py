@@ -128,7 +128,8 @@ def _icp_2d(
         tgt_c = matched_tgt - mu_tgt
 
         H = src_c.T @ tgt_c
-        U, _, Vt = np.linalg.svd(H)
+        U, S, Vt = np.linalg.svd(H)
+        del S  # singular values not needed; named for readability
         R = Vt.T @ U.T
 
         # Ensure proper rotation (det = +1).
