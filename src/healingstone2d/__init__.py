@@ -46,3 +46,6 @@ __all__ = [
     "assemble_reconstruction",
     "run_2d_pipeline",
 ]
+"""HealingStone 2D fragment reconstruction pipeline."""
+
+__all__ = []

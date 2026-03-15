@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "healingstone"
 version = "0.2.0"
-description = "3D fragmented artifact reconstruction pipeline"
+description = "3D and 2D fragmented artifact reconstruction pipeline"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
@@ -15,6 +15,7 @@ dependencies = [
   "networkx>=3.2",
   "pydantic>=2.7",
   "PyYAML>=6.0",
+  "Pillow>=10.0",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +23,10 @@ runtime = [
   "open3d>=0.18.0; python_version < '3.13'",
   "torch>=2.2; python_version < '3.13'",
   "opencv-python>=4.8",
+]
+pipeline2d = [
+  "opencv-python-headless>=4.8",
+  "scikit-image>=0.21",
 ]
 dev = [
   "pytest>=8.0",
