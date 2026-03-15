@@ -130,7 +130,7 @@ def extract_contours(
         dilated_mask = cv2.dilate(binary_mask, kernel, iterations=1)
         search_image = cv2.bitwise_and(search_image, search_image, mask=dilated_mask)
 
-    raw_contours, _ = cv2.findContours(search_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    raw_contours, _hierarchy = cv2.findContours(search_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     contours = [c for c in raw_contours if cv2.arcLength(c, closed=False) >= min_length]
     contours = sorted(contours, key=lambda c: cv2.arcLength(c, closed=False), reverse=True)
@@ -166,7 +166,7 @@ def extract_break_contour(
         return None
 
     # Compute fragment boundary contours from the mask.
-    hull_contours, _ = cv2.findContours(
+    hull_contours, _hierarchy = cv2.findContours(
         binary_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     if not hull_contours:
