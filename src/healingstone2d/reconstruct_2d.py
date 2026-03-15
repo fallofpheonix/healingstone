@@ -12,7 +12,8 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Deque, Dict, List, Optional, Tuple
+from collections import deque
 
 import cv2
 import numpy as np
@@ -130,11 +131,11 @@ def assemble_reconstruction(
     # Compute global transforms via BFS from root.                        #
     # ------------------------------------------------------------------ #
     global_transforms: Dict[int, np.ndarray] = {root_idx: np.eye(3, dtype=np.float64)}
-    queue: List[int] = [root_idx]
+    queue: Deque[int] = deque([root_idx])
     visited: set = {root_idx}
 
     while queue:
-        current = queue.pop(0)
+        current = queue.popleft()
         for (fi, fj), res in alignments.items():
             if not res.success:
                 continue
