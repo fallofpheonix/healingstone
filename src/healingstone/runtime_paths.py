@@ -97,7 +97,7 @@ def resolve_data_dir(
         candidate = _normalize(configured_data_dir)
         if not _contains_fragments(candidate) and not _contains_images(candidate):
             raise FileNotFoundError(
-                f"Explicit data_dir has no .PLY/.OBJ/.PNG/.JPG fragments: {candidate}"
+                f"Explicit data_dir has no .PLY/.OBJ/.PNG/.JPG/.JPEG fragments: {candidate}"
             )
         return candidate, used_legacy
 

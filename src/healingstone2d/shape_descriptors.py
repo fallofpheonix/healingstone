@@ -93,13 +93,17 @@ def _radial_histogram(points: np.ndarray, centroid: np.ndarray, n_bins: int) -> 
 
 
 def _perimeter_from_contours(contours: List[np.ndarray]) -> float:
-    """Sum of contour arc lengths."""
+    """Sum of contour arc lengths (closed perimeter)."""
     total = 0.0
     for c in contours:
         if c.shape[0] < 2:
             continue
+        # Add segment lengths for consecutive points
         diffs = np.diff(c, axis=0)
         total += float(np.sum(np.linalg.norm(diffs, axis=1)))
+        # Add closing segment from last point back to first
+        closing = np.linalg.norm(c[-1] - c[0])
+        total += float(closing)
     return total
 
 

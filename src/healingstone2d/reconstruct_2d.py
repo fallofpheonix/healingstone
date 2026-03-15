@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -28,7 +28,7 @@ def _spanning_tree_transforms(
     alignments: Dict[Tuple[int, int], AlignmentResult2D],
     pair_scores: Dict[Tuple[int, int], float],
 ) -> Dict[int, np.ndarray]:
-    """Compute global transforms via greedy BFS on the alignment graph."""
+    """Compute global transforms via maximum spanning tree on the alignment graph."""
     import networkx as nx  # type: ignore[import]
 
     g: nx.Graph = nx.Graph()
@@ -39,16 +39,23 @@ def _spanning_tree_transforms(
         if weight > 0:
             g.add_edge(i, j, weight=weight, transform=a.transform)
 
+    # Build maximum spanning tree to select best edges.
+    if g.number_of_edges() > 0:
+        mst = nx.maximum_spanning_tree(g, weight="weight")
+    else:
+        mst = nx.Graph()
+        mst.add_nodes_from(range(n))
+
     global_transforms: Dict[int, np.ndarray] = {}
-    # Anchor first connected component at identity.
+    # Traverse MST using BFS to propagate transforms.
     for start in range(n):
         if start in global_transforms:
             continue
-        if start not in g:
+        if start not in mst:
             global_transforms[start] = np.eye(3, dtype=np.float32)
             continue
         global_transforms[start] = np.eye(3, dtype=np.float32)
-        for u, v in nx.bfs_edges(g, source=start):
+        for u, v in nx.bfs_edges(mst, source=start):
             # Determine the transform in the traversal direction u → v.
             if (u, v) in alignments:
                 a = alignments[(u, v)]
@@ -66,11 +73,8 @@ def _spanning_tree_transforms(
                     )
                     T_edge = np.eye(3, dtype=np.float32)
             else:
-                LOG.warning(
-                    "No alignment found for edge (%d, %d); using identity transform.",
-                    u,
-                    v,
-                )
+                # Edge exists in MST but not in alignments; shouldn't happen.
+                LOG.warning("MST edge (%d, %d) missing in alignments; using identity.", u, v)
                 T_edge = np.eye(3, dtype=np.float32)
             # Compose: global[v] = global[u] @ T_edge
             parent_T = global_transforms.get(u, np.eye(3, dtype=np.float32))
@@ -203,9 +207,12 @@ def _save_image(image: np.ndarray, path: Path) -> None:
     try:
         import cv2  # type: ignore[import]
 
-        cv2.imwrite(str(path), image)
+        success = cv2.imwrite(str(path), image)
+        if not success:
+            LOG.warning("cv2.imwrite failed for %s; falling back to PIL", path)
+            raise RuntimeError("cv2.imwrite failed")
         return
-    except ImportError:
+    except (ImportError, RuntimeError):
         pass
 
     from PIL import Image  # type: ignore[import]
