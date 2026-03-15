@@ -12,7 +12,7 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from typing import Any, Deque, Dict, Optional, Tuple
 from collections import deque
 
 import cv2
