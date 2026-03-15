@@ -165,9 +165,10 @@ def align_pair_2d(
 
     success = inlier_ratio >= 0.2 and np.isfinite(rmse)
     LOG.debug(
-        "Align 2D pair (%s, %s): inlier_ratio=%.3f rmse=%.3f success=%s",
+        "Align 2D pair (%s, %s): score_prior=%.3f inlier_ratio=%.3f rmse=%.3f success=%s",
         frag_i.name,
         frag_j.name,
+        score_prior,
         inlier_ratio,
         rmse if np.isfinite(rmse) else -1.0,
         success,
