@@ -15,7 +15,7 @@ Entry point::
     from healingstone2d.reconstruct_2d import run_2d_pipeline
     run_2d_pipeline(data_dir, output_dir, seed=42)
 
-Requires: opencv-python, numpy, scikit-image.  Install with::
+Requires: opencv-python, numpy.  Install with::
 
     pip install 'healingstone[runtime]'
 """
