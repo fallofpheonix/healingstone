@@ -89,6 +89,11 @@ def compute_fourier_descriptors(
     z = pts[:, 0].astype(np.float64) + 1j * pts[:, 1].astype(np.float64)
     dft = np.fft.fft(z)
 
+    # If the contour is too short to provide a first non-DC coefficient,
+    # return a zero descriptor to avoid indexing errors and keep API stable.
+    if dft.size < 2:
+        return np.zeros(2 * n_coeffs, dtype=np.float32)
+
     # Take low-frequency coefficients (skip DC at index 0).
     low = dft[1 : n_coeffs + 1]
     if len(low) < n_coeffs:
