@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import List
 
 import numpy as np
 
 from .edge_detection import EdgeBundle
-
-LOG = logging.getLogger(__name__)
 
 # Number of angular bins for the radial profile histogram.
 _N_ANGLE_BINS = 36
