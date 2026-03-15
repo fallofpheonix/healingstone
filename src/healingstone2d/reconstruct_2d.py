@@ -122,8 +122,11 @@ def assemble_reconstruction(
         success_count: Dict[int, int] = {f.idx: 0 for f in fragments}
         for (fi, fj), res in alignments.items():
             if res.success:
-                success_count[fi] = success_count.get(fi, 0) + 1
-                success_count[fj] = success_count.get(fj, 0) + 1
+                # Use directed fragment indices from the alignment result when available.
+                frag_i = getattr(res, "frag_idx_i", fi)
+                frag_j = getattr(res, "frag_idx_j", fj)
+                success_count[frag_i] = success_count.get(frag_i, 0) + 1
+                success_count[frag_j] = success_count.get(frag_j, 0) + 1
         root_idx = max(success_count, key=lambda k: success_count[k])
 
     LOG.info("Assembling 2D reconstruction with root fragment idx=%d", root_idx)
@@ -141,11 +144,15 @@ def assemble_reconstruction(
             if not res.success:
                 continue
             neighbour: Optional[int] = None
-            if fi == current and fj not in visited:
-                neighbour = fj
+            # Determine directed endpoints from the alignment result. Fall back to the
+            # key ordering if explicit fragment indices are not present.
+            frag_i = getattr(res, "frag_idx_i", fi)
+            frag_j = getattr(res, "frag_idx_j", fj)
+            if frag_i == current and frag_j not in visited:
+                neighbour = frag_j
                 T_neighbour = res.transform @ global_transforms[current]
-            elif fj == current and fi not in visited:
-                neighbour = fi
+            elif frag_j == current and frag_i not in visited:
+                neighbour = frag_i
                 T_neighbour = np.linalg.inv(res.transform) @ global_transforms[current]
 
             if neighbour is not None and neighbour in frag_by_idx:
