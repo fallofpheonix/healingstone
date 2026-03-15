@@ -78,20 +78,6 @@ def _resize_if_large(image: np.ndarray) -> np.ndarray:
         return resized.astype(np.uint8)
 
 
-def _binarise(image: np.ndarray) -> np.ndarray:
-    """Otsu-threshold a grayscale image to binary mask."""
-    try:
-        import cv2  # type: ignore[import]
-
-        _, binary = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        return binary
-    except ImportError:
-        from skimage.filters import threshold_otsu  # type: ignore[import]
-
-        thr = threshold_otsu(image)
-        return (image >= thr).astype(np.uint8) * 255
-
-
 def preprocess_fragment(idx: int, path: Path) -> Fragment2D:
     """Load and preprocess one 2D fragment image."""
     image = _load_grayscale(path)
