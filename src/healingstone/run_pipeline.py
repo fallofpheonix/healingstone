@@ -1,4 +1,9 @@
-"""End-to-end 3D fragment reconstruction pipeline."""
+"""End-to-end fragment reconstruction pipeline (3D and 2D).
+
+Automatically detects whether the input data directory contains 3D mesh files
+(.PLY / .OBJ) or 2D image files (.PNG / .JPG) and routes to the appropriate
+sub-pipeline.
+"""
 
 from __future__ import annotations
 
@@ -32,6 +37,61 @@ if TYPE_CHECKING:
     from .align_fragments import AlignmentResult
     from .preprocess import Fragment
     from .reconstruct import AssemblyResult
+
+# ---------------------------------------------------------------------------
+# Input-type detection
+# ---------------------------------------------------------------------------
+
+_MESH_EXTENSIONS = frozenset({".ply", ".obj"})
+_IMAGE_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"})
+
+
+def detect_pipeline_mode(data_dir: Path) -> str:
+    """Detect whether to use the 3D or 2D pipeline from files in *data_dir*.
+
+    Scans *data_dir* recursively for mesh files (.ply, .obj) and image files
+    (.png, .jpg, …).  Mesh files take precedence: if both types are present
+    the 3D pipeline is selected.
+
+    Parameters
+    ----------
+    data_dir:
+        Directory to scan.
+
+    Returns
+    -------
+    str
+        ``"3d"`` or ``"2d"``.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no supported files are found.
+    """
+    if not data_dir.exists():
+        raise FileNotFoundError(f"Data directory does not exist: {data_dir}")
+
+    has_mesh = False
+    has_image = False
+    for p in data_dir.rglob("*"):
+        if not p.is_file():
+            continue
+        ext = p.suffix.lower()
+        if ext in _MESH_EXTENSIONS:
+            has_mesh = True
+            break  # mesh files → 3D pipeline, stop immediately
+        if ext in _IMAGE_EXTENSIONS:
+            has_image = True
+
+    if has_mesh:
+        LOG.info("Detected 3D mesh fragments in %s → running 3D pipeline", data_dir)
+        return "3d"
+    if has_image:
+        LOG.info("Detected 2D image fragments in %s → running 2D pipeline", data_dir)
+        return "2d"
+    raise FileNotFoundError(
+        f"No supported fragment files (.ply/.obj or .png/.jpg) found in: {data_dir}"
+    )
 
 
 def _json_safe(obj):
@@ -251,7 +311,11 @@ def _write_error_log(run_paths: ResolvedRunPaths | None, exc: Exception) -> None
 
 
 def run_pipeline(args: argparse.Namespace) -> None:
-    """Execute full reconstruction pipeline."""
+    """Execute full reconstruction pipeline.
+
+    Automatically selects the 3D or 2D sub-pipeline based on the fragment
+    files found in the resolved data directory.
+    """
     from .align_fragments import align_candidate_pairs
     from .features import extract_all_features
     from .match_fragments import train_and_match_fragments
@@ -292,6 +356,18 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
         set_deterministic_seed(args.seed)
 
+        # ------------------------------------------------------------------
+        # Auto-detect input type and dispatch to the appropriate sub-pipeline.
+        # ------------------------------------------------------------------
+        pipeline_mode = detect_pipeline_mode(run_paths.data_dir)
+
+        if pipeline_mode == "2d":
+            _run_2d_pipeline(args, run_paths)
+            return
+
+        # ------------------------------------------------------------------
+        # 3D pipeline (original implementation below).
+        # ------------------------------------------------------------------
         labels_csv = run_paths.labels_csv
         enforce_accuracy_gate = args.min_match_accuracy is not None and float(args.min_match_accuracy) > 0.0
         if enforce_accuracy_gate:
@@ -451,6 +527,40 @@ def run_pipeline(args: argparse.Namespace) -> None:
     except Exception as exc:
         _write_error_log(run_paths, exc)
         raise
+
+
+def _run_2d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> None:
+    """Delegate to the healingstone2d pipeline and write a minimal report."""
+    try:
+        from healingstone2d.reconstruct_2d import run_2d_pipeline
+    except ImportError as exc:
+        raise ImportError(
+            "The healingstone2d package is required for 2D fragment reconstruction. "
+            "Install it with: pip install 'healingstone[runtime]'"
+        ) from exc
+
+    LOG.info("Starting 2D reconstruction pipeline")
+    LOG.info("Run directory: %s", run_paths.run_dir)
+
+    metrics = run_2d_pipeline(
+        data_dir=run_paths.data_dir,
+        output_dir=run_paths.results_dir,
+        seed=args.seed,
+    )
+
+    # Write a minimal JSON report so downstream tooling finds a report file.
+    report = {
+        "pipeline_mode": "2d",
+        "run": {
+            "run_id": run_paths.run_id,
+            "results_dir": str(run_paths.results_dir),
+        },
+        "metrics": metrics,
+    }
+    report_path = run_paths.results_dir / "alignment_metrics.json"
+    report_path.write_text(json.dumps(_json_safe(report), indent=2), encoding="utf-8")
+
+    LOG.info("2D pipeline complete. Metrics report: %s", report_path)
 
 
 def parse_args() -> argparse.Namespace:

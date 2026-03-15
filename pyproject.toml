@@ -21,6 +21,8 @@ dependencies = [
 runtime = [
   "open3d>=0.18.0; python_version < '3.13'",
   "torch>=2.2; python_version < '3.13'",
+  "opencv-python>=4.8",
+  "scikit-image>=0.21",
 ]
 dev = [
   "pytest>=8.0",
