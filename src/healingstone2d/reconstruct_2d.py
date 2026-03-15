@@ -70,7 +70,8 @@ def _build_canvas_transform(
     base_transform:
         (3, 3) homogeneous rigid transform for this fragment.
     canvas_offset:
-        (2,) translation vector that centres all fragments on the canvas.
+        (2,) translation vector (e.g. padding offset) applied uniformly to
+        all fragments on the canvas.
 
     Returns
     -------
@@ -90,9 +91,9 @@ def assemble_reconstruction(
 ) -> np.ndarray:
     """Place all fragments on a shared canvas using estimated transforms.
 
-    The root fragment (default: the one with the most successful alignments)
-    is placed at the canvas centre.  All other fragments are placed using the
-    transform that aligns them to the root.
+    A root fragment (default: the one with the most successful alignments)
+    is chosen, and all fragments are placed on a shared canvas using the
+    estimated transforms that align them relative to this root.
 
     Parameters
     ----------
