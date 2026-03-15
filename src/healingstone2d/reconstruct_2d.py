@@ -98,7 +98,7 @@ def assemble_fragments_2d(
         if a.success:
             connected.add(i)
             connected.add(j)
-    placed = len(connected) if connected else n
+    placed = len(connected)
     completeness = float(placed) / max(1, n)
     LOG.info("2D assembly: %d/%d fragments placed (completeness=%.2f)", placed, n, completeness)
     return Assembly2DResult(
