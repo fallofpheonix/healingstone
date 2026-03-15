@@ -162,6 +162,20 @@ CI runs `ruff`, `mypy`, and `pytest` on Python `3.10`, `3.11`, `3.12`.
 pip-compile pyproject.toml --extra dev -o requirements.lock
 ```
 
+## Roadmap
+
+### Phase 1: Repository Stabilization [COMPLETED]
+- document canonical dataset placement and execution path
+- remove stale claims from docs
+- treat legacy `data/3D_fragments.zip` as invalid; replaced by `files.zip`
+- decide retirement plan for `src/healingstone/healing_stones.py` (Staged for removal)
+
+## Project Archive
+- **Inputs**: 3D scans of fragments in `.PLY` or `.OBJ` format.
+- **Outputs**: Global reconstruction mesh, pairwise alignment metrics (ICP RMSE), and completeness statistics.
+
+The repository includes `files.zip`, which contains a compressed snapshot of the project state, data, and initial artifacts for ease of portability and backup.
+
 ## Migration Window
 
 Legacy wrappers and legacy fallback paths are still supported in this release.
