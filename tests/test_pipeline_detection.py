@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from healingstone.run_pipeline import detect_pipeline_mode
+from healingstone.pipeline.run_pipeline import detect_pipeline_mode
 
 
 def test_detect_3d_pipeline_with_ply_files() -> None:

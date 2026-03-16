@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from healingstone.runtime_paths import (
+from healingstone.core.runtime_paths import (
     initialize_run_layout,
     resolve_artifact_root,
     resolve_data_dir,

@@ -179,7 +179,8 @@ def save_ply_ascii(filepath: str, vertices: np.ndarray):
 # ─────────────────────────────────────────────
 
 def run_test(n_fragments: int = 6, out_base: str = "test_output"):
-    from .healing_stones import run_pipeline
+    from .run_pipeline import run_pipeline
+    from ..core.runtime_config import build_runtime_config, to_namespace
 
     data_dir = os.path.join(out_base, "synthetic_fragments")
     out_dir  = os.path.join(out_base, "results")
@@ -191,7 +192,7 @@ def run_test(n_fragments: int = 6, out_base: str = "test_output"):
     # Generate test data
     log.info(f"\nGenerating {n_fragments} synthetic fragments ...")
     saved_paths, gt_pairs = generate_synthetic_dataset(
-        data_dir, n_fragments=n_fragments, n_pts=800, seed=42)
+        data_dir, n_fragments=n_fragments, n_pts=4000, seed=42)
 
     # Load ground truth
     gt_path = os.path.join(data_dir, "ground_truth_pairs.json")
@@ -201,21 +202,85 @@ def run_test(n_fragments: int = 6, out_base: str = "test_output"):
     log.info(f"\nGround truth adjacent pairs: {gt['adjacent_pairs']}")
     log.info("\nRunning full pipeline ...")
 
-    # Run pipeline
-    report = run_pipeline(
-        data_dir    = data_dir,
-        out_dir     = out_dir,
-        voxel_size  = 0.05,
-        k_neighbors = 10,
-        n_keypoints = 32,
+    # Setup paths
+    config_path = Path("configs/pipeline.yaml")
+    train_path = Path("configs/train.yaml")
+    manifest_path = Path("configs/datasets.yaml")
+
+    # Construct CLI-like namespace for build_runtime_config
+    args = argparse.Namespace(
+        config=str(config_path),
+        train_config=str(train_path),
+        dataset_manifest=str(manifest_path),
+        data_dir=str(data_dir),
+        output_dir=str(out_base),
+        allow_overwrite_run=True,
+        voxel_size=0.01,
+        k_neighbors=10,
+        n_keypoints=32,
+        # Default others to None for overrides logic
+        labels_csv=None,
+        sample_points=None,
+        normal_radius=None,
+        normal_max_nn=None,
+        outlier_nb_neighbors=None,
+        outlier_std_ratio=None,
+        fpfh_radius=None,
+        fpfh_max_nn=None,
+        dbscan_eps=None,
+        dbscan_min_samples=None,
+        candidate_top_k=None,
+        align_top_n=None,
+        label_suggestions_top_n=None,
+        threshold_objective=None,
+        min_match_accuracy=None,
+        min_required_accuracy=0.0,
+        evaluation_split=None,
+        augment_rotations=None,
+        augment_count=None,
+        seed=42,
+        device=None,
     )
+
+    log.info("\nResolving configuration ...")
+    bundle = build_runtime_config(args)
+    effective_args = to_namespace(bundle)
+
+    # Run pipeline
+    run_pipeline(effective_args)
+
+    # Load report (run_pipeline writes it to run_paths.results_dir)
+    latest_ptr = Path(out_base) / "latest"
+    if latest_ptr.is_dir():
+        report_path = latest_ptr / "results" / "alignment_metrics.json"
+    elif latest_ptr.is_file():
+        run_dir = Path(latest_ptr.read_text(encoding="utf-8").strip())
+        report_path = run_dir / "results" / "alignment_metrics.json"
+    else:
+        # Fallback: scan for most recent run directory
+        runs_root = Path(out_base) / "runs"
+        run_dirs = sorted(runs_root.glob("*"), key=os.path.getmtime, reverse=True)
+        if not run_dirs:
+            log.error(f"No run directories found in {runs_root}")
+            return {}
+        report_path = run_dirs[0] / "results" / "alignment_metrics.json"
+    
+    log.info(f"Loading report from {report_path}")
+    if not report_path.exists():
+        log.error(f"Report not found at {report_path}")
+        return {}
+        
+    with open(report_path) as f:
+        report = json.load(f)
 
     # Evaluate against ground truth
     log.info("\n" + "=" * 60)
     log.info("TEST EVALUATION vs GROUND TRUTH")
     log.info("=" * 60)
 
-    top_matches = report["top_10_matches"]
+    top_matches = report.get("diagnostics", {}).get("top_matches", [])
+    if not top_matches and "top_10_matches" in report: # Legacy check
+         top_matches = report["top_10_matches"]
     gt_set = set(tuple(sorted(p)) for p in gt["adjacent_pairs"])
 
     hits = 0

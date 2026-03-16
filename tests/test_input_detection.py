@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from healingstone.run_pipeline import _detect_input_type
+from healingstone.pipeline.run_pipeline import _detect_input_type
 
 
 def _write_ply(path: Path) -> None:

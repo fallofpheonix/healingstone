@@ -23,14 +23,14 @@ Requires: opencv-python, numpy.  Install with::
 from __future__ import annotations
 
 try:
-    from healingstone2d.align_fragments_2d import AlignmentResult2D, align_candidate_pairs_2d
-    from healingstone2d.edge_detection import detect_edges, extract_contours
-    from healingstone2d.match_fragments_2d import FragmentMatch, match_all_fragments
-    from healingstone2d.preprocess_2d import Fragment2D, load_and_preprocess_fragments_2d
-    from healingstone2d.reconstruct_2d import assemble_reconstruction, run_2d_pipeline
-    from healingstone2d.shape_descriptors import ShapeDescriptor, extract_all_descriptors
+    from .align_fragments_2d import AlignmentResult2D, align_candidate_pairs_2d
+    from .edge_detection import detect_edges, extract_contours
+    from .match_fragments_2d import FragmentMatch, match_all_fragments
+    from .preprocess_2d import Fragment2D, load_and_preprocess_fragments_2d
+    from .reconstruct_2d import assemble_reconstruction, run_2d_pipeline
+    from .shape_descriptors import ShapeDescriptor, extract_all_descriptors
 except ImportError:
-    pass  # opencv-python not installed; individual modules still importable.
+    pass
 
 __all__ = [
     "Fragment2D",
@@ -43,9 +43,6 @@ __all__ = [
     "match_all_fragments",
     "AlignmentResult2D",
     "align_candidate_pairs_2d",
-    "assemble_reconstruction",
+    "assemble_fragments_2d",
     "run_2d_pipeline",
 ]
-"""HealingStone 2D fragment reconstruction pipeline."""
-
-__all__ = []
