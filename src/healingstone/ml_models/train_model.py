@@ -7,12 +7,30 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
-import torch
-import torch.nn as nn
+
+try:
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import DataLoader, Dataset
+except ImportError:
+    torch = None  # type: ignore[assignment]
+    # Stub base classes so class definitions parse without error at import time.
+    # At runtime, torch must be present for these classes to be instantiated.
+    class _TorchBase:  # type: ignore[no-redef]
+        pass
+
+    class _NNModule:  # type: ignore[no-redef]
+        pass
+
+    class _NNNamespace:  # type: ignore[no-redef]
+        Module = _NNModule
+
+    nn = _NNNamespace()  # type: ignore[assignment]
+    Dataset = _TorchBase  # type: ignore[assignment, misc]
+    DataLoader = _TorchBase  # type: ignore[assignment, misc]
+
 from sklearn.preprocessing import StandardScaler
-from torch.utils.data import DataLoader, Dataset
 
 LOG = logging.getLogger(__name__)
 
@@ -92,6 +110,11 @@ def train_siamese_model(
     device: str = "cpu",
 ) -> SiameseModelBundle:
     """Train Siamese model with contrastive loss."""
+    if torch is None:
+        raise ImportError(
+            "torch is required for Siamese model training. "
+            "Install with: pip install torch"
+        )
     if x1.shape[0] < 4:
         raise ValueError("Not enough pairs to train Siamese model")
 
@@ -134,6 +157,8 @@ def train_siamese_model(
     models_dir.mkdir(parents=True, exist_ok=True)
     ckpt_path = models_dir / "siamese_encoder.pt"
     torch.save({"state_dict": model.state_dict(), "in_dim": x1.shape[1], "emb_dim": emb_dim}, ckpt_path)
+
+    import matplotlib.pyplot as plt
 
     plt.figure(figsize=(7, 4))
     plt.plot(losses, color="tab:blue", linewidth=2)

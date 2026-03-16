@@ -336,6 +336,12 @@ def train_and_match_fragments(
     dbscan_eps: float = 0.04,
     dbscan_min_samples: int = 24,
     n_keypoints: int = 256,
+    emb_dim: int = 64,
+    epochs: int = 120,
+    batch_size: int = 64,
+    lr: float = 1e-3,
+    weight_decay: float = 1e-5,
+    margin: float = 1.0,
     seed: int = 42,
     device: str = "cpu",
 ) -> Tuple[np.ndarray, List[Tuple[int, int]], Dict[Tuple[int, int], float], Dict[str, float], SiameseModelBundle]:
@@ -363,6 +369,12 @@ def train_and_match_fragments(
         x2=x2,
         y=y,
         models_dir=models_dir,
+        emb_dim=emb_dim,
+        epochs=epochs,
+        batch_size=batch_size,
+        lr=lr,
+        weight_decay=weight_decay,
+        margin=margin,
         device=device,
     )
 

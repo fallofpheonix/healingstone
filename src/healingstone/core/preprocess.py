@@ -9,8 +9,13 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
-import open3d as o3d
-import torch
+
+try:
+    import open3d as o3d
+    import torch
+except ImportError:
+    o3d = None  # type: ignore[assignment]
+    torch = None  # type: ignore[assignment]
 
 LOG = logging.getLogger(__name__)
 
@@ -26,6 +31,11 @@ class Fragment:
     normals: np.ndarray
 
     def to_point_cloud(self) -> o3d.geometry.PointCloud:
+        if o3d is None:
+            raise ImportError(
+                "open3d is required for point cloud conversion. "
+                "Install with: pip install open3d"
+            )
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(self.points)
         pcd.normals = o3d.utility.Vector3dVector(self.normals)
@@ -36,6 +46,8 @@ def set_deterministic_seed(seed: int = 42) -> None:
     """Set deterministic seeds for reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
+    if torch is None:
+        return
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
@@ -60,6 +72,11 @@ def discover_fragment_files(data_dir: Path) -> List[Path]:
 
 def _load_fragment_geometry(path: Path, sample_points: int) -> o3d.geometry.PointCloud:
     """Load file as mesh or point cloud and return sampled point cloud."""
+    if o3d is None:
+        raise ImportError(
+            "open3d is required for loading mesh fragments. "
+            "Install with: pip install open3d"
+        )
     ext = path.suffix.lower()
 
     if ext == ".obj":

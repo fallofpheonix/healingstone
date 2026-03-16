@@ -18,7 +18,6 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from ..core.metrics_schema import attach_schema_version, validate_metrics_schema
@@ -163,6 +162,8 @@ def configure_logging(log_dir: Path) -> Path:
 
 
 def plot_similarity_matrix(similarity: np.ndarray, fragments: List[Fragment], out_path: Path) -> None:
+    import matplotlib.pyplot as plt
+
     labels = [f.name for f in fragments]
     fig, ax = plt.subplots(figsize=(8, 7))
     im = ax.imshow(similarity, cmap="viridis", vmin=-1, vmax=1)
@@ -188,6 +189,8 @@ def plot_alignment_snapshots(
     output_dir: Path,
     max_plots: int = 4,
 ) -> None:
+    import matplotlib.pyplot as plt
+
     ordered = sorted(
         alignments.values(),
         key=lambda r: (r.success, -r.score_prior, -r.fitness),
@@ -220,6 +223,8 @@ def plot_alignment_snapshots(
 
 
 def plot_final_reconstruction(points: np.ndarray, out_path: Path) -> None:
+    import matplotlib.pyplot as plt
+
     fig = plt.figure(figsize=(8, 7))
     ax = fig.add_subplot(111, projection="3d")
     sub = points[:: max(1, points.shape[0] // 15000)]
@@ -522,6 +527,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
             n_keypoints=args.n_keypoints,
         )
 
+        _train_cfg = getattr(args, "_train_config", {})
         similarity, candidate_pairs, pair_scores, diagnostics, _ = train_and_match_fragments(
             fragments=fragments,
             features=features,
@@ -539,6 +545,12 @@ def run_pipeline(args: argparse.Namespace) -> None:
             dbscan_eps=args.dbscan_eps,
             dbscan_min_samples=args.dbscan_min_samples,
             n_keypoints=args.n_keypoints,
+            emb_dim=_train_cfg.get("emb_dim", 64),
+            epochs=_train_cfg.get("epochs", 120),
+            batch_size=_train_cfg.get("batch_size", 64),
+            lr=_train_cfg.get("lr", 1e-3),
+            weight_decay=_train_cfg.get("weight_decay", 1e-5),
+            margin=_train_cfg.get("margin", 1.0),
             seed=args.seed,
             device=args.device,
         )
