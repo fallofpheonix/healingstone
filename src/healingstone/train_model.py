@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -143,6 +144,16 @@ def train_siamese_model(
     plt.tight_layout()
     plt.savefig(models_dir / "training_loss.png", dpi=140)
     plt.close()
+
+    metrics = {
+        "epochs": epochs,
+        "batch_size": batch_size,
+        "learning_rate": lr,
+        "margin": margin,
+        "final_loss": float(losses[-1]) if losses else None,
+        "epoch_losses": [float(l) for l in losses]
+    }
+    (models_dir / "training_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
 
     return SiameseModelBundle(model=model, scaler=scaler, train_loss=np.array(losses, dtype=np.float32))
 
