@@ -77,33 +77,32 @@ def _otsu_threshold(x: np.ndarray, bins: int = 128) -> float:
 def estimate_geometry_features(points: np.ndarray, normals: np.ndarray, k_neighbors: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Estimate curvature, normal variance, and roughness from local neighborhoods."""
     n = points.shape[0]
-    nn = NearestNeighbors(n_neighbors=min(k_neighbors + 1, n), algorithm="kd_tree")
+    k = min(k_neighbors + 1, n)
+    nn = NearestNeighbors(n_neighbors=k, algorithm="kd_tree")
     nn.fit(points)
-    distances, indices = nn.kneighbors(points, return_distance=True)
+    _, indices = nn.kneighbors(points)
 
-    curvature = np.zeros(n, dtype=np.float32)
-    normal_var = np.zeros(n, dtype=np.float32)
-    roughness = np.zeros(n, dtype=np.float32)
+    local_pts = points[indices]  # (n, k, 3)
+    local_n = normals[indices]   # (n, k, 3)
 
-    for i in range(n):
-        idx = indices[i]
-        local_pts = points[idx]
-        local_n = normals[idx]
+    # Vectorized covariance computation
+    centered = local_pts - local_pts.mean(axis=1, keepdims=True)
+    cov = np.einsum('nki,nkj->nij', centered, centered) / max(1, k - 1)
 
-        centered = local_pts - local_pts.mean(axis=0, keepdims=True)
-        cov = centered.T @ centered / max(1, len(local_pts) - 1)
-        eigvals = np.linalg.eigvalsh(cov)
-        eigvals = np.sort(np.clip(eigvals, 0.0, None))
-        denom = float(np.sum(eigvals) + 1e-12)
-        curvature[i] = float(eigvals[0] / denom)
+    # Vectorized eigendecomposition (eigh returns eigenvalues in ascending order)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    eigvals = np.clip(eigvals, 0.0, None)
+    
+    denom = np.sum(eigvals, axis=1) + 1e-12
+    curvature = (eigvals[:, 0] / denom).astype(np.float32)
 
-        normal_var[i] = float(np.mean(np.var(local_n, axis=0)))
+    # Vectorized normal variance
+    normal_var = np.mean(np.var(local_n, axis=1), axis=1).astype(np.float32)
 
-        # Plane-fit roughness from smallest-eigenvector normal.
-        eigvals_c, eigvecs_c = np.linalg.eigh(cov)
-        plane_normal = eigvecs_c[:, np.argmin(eigvals_c)]
-        plane_normal /= np.linalg.norm(plane_normal) + 1e-12
-        roughness[i] = float(np.mean(np.abs(centered @ plane_normal)))
+    # Vectorized roughness
+    plane_normal = eigvecs[:, :, 0]  # smallest eigenvector (n, 3)
+    plane_normal /= np.linalg.norm(plane_normal, axis=1, keepdims=True) + 1e-12
+    roughness = np.mean(np.abs(np.einsum('nki,ni->nk', centered, plane_normal)), axis=1).astype(np.float32)
 
     return curvature, normal_var, roughness
 
