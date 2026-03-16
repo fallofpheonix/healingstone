@@ -8,13 +8,13 @@ Requires the ``runtime`` optional dependencies (open3d, torch).  Install with::
 from __future__ import annotations
 
 try:
-    from healingstone.align_fragments import (
+    from .align_fragments import (
         AlignmentResult,
         align_candidate_pairs,
         align_pair,
         chamfer_distance,
     )
-    from healingstone.reconstruct import (
+    from .reconstruct import (
         AssemblyResult,
         assemble_global_reconstruction,
         build_fragment_graph,
@@ -22,7 +22,7 @@ try:
         merge_and_save_reconstruction,
     )
 except ImportError:
-    pass  # open3d not installed; individual modules still importable.
+    pass
 
 __all__ = [
     "AlignmentResult",

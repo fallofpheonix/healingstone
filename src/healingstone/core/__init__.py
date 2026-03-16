@@ -9,7 +9,7 @@ requires the ``runtime`` optional dependencies (open3d, torch).  Install with::
 from __future__ import annotations
 
 try:
-    from healingstone.features import (
+    from .features import (
         FeatureBundle,
         augment_fragment_geometry,
         build_augmented_descriptor,
@@ -20,7 +20,7 @@ try:
         extract_all_features,
         extract_fragment_features,
     )
-    from healingstone.preprocess import (
+    from .preprocess import (
         Fragment,
         discover_fragment_files,
         load_and_preprocess_fragments,
@@ -28,9 +28,9 @@ try:
         set_deterministic_seed,
     )
 except ImportError:
-    pass  # open3d / torch not installed; individual modules still importable.
+    pass
 
-from healingstone.metrics_schema import (
+from .metrics_schema import (
     METRICS_SCHEMA_VERSION,
     attach_schema_version,
     validate_metrics_schema,

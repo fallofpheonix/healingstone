@@ -7,7 +7,7 @@ Requires the ``runtime`` optional dependencies (open3d, torch).  Install with::
 
 from __future__ import annotations
 
-from healingstone.ml_models.surface_model import (
+from .surface_model import (
     BreakSurfaceClassifier,
     SurfaceModelBundle,
     predict_break_surface,
@@ -15,7 +15,7 @@ from healingstone.ml_models.surface_model import (
 )
 
 try:
-    from healingstone.match_fragments import (
+    from .match_fragments import (
         calibrate_threshold,
         evaluate_pair_accuracy,
         evaluate_pair_metrics,
@@ -24,7 +24,7 @@ try:
         train_and_match_fragments,
         write_labeling_candidates,
     )
-    from healingstone.train_model import (
+    from .train_model import (
         ContrastiveLoss,
         PairDataset,
         SiameseEncoder,
@@ -34,7 +34,7 @@ try:
         train_siamese_model,
     )
 except ImportError:
-    pass  # torch not installed; individual modules still importable.
+    pass
 
 __all__ = [
     "BreakSurfaceClassifier",

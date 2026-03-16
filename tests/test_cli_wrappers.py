@@ -7,7 +7,7 @@ import sys
 
 def test_module_help_works() -> None:
     proc = subprocess.run(
-        [sys.executable, "-m", "healingstone.run_pipeline", "--help"],
+        [sys.executable, "-m", "healingstone.pipeline.run_pipeline", "--help"],
         capture_output=True,
         text=True,
     )

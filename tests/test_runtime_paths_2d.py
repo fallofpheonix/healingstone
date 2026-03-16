@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from healingstone.runtime_paths import _contains_images, resolve_data_dir
+from healingstone.core.runtime_paths import _contains_images, resolve_data_dir
 
 
 def _write_image(path: Path) -> None:

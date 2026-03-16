@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from healingstone.runtime_config import build_runtime_config
+from healingstone.core.runtime_config import build_runtime_config
 
 
 FIELDS = [

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from healingstone.metrics_schema import MetricsSchemaError, validate_metrics_schema
+from healingstone.core.metrics_schema import MetricsSchemaError, validate_metrics_schema
 
 
 def test_metrics_schema_valid() -> None:

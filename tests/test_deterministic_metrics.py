@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import networkx as nx
 import pytest
 
-from healingstone.run_pipeline import enforce_accuracy_requirement, summarize_metrics
+from healingstone.pipeline.run_pipeline import enforce_accuracy_requirement, summarize_metrics
 
 
 def test_summarize_metrics_stable() -> None:

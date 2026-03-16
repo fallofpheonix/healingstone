@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from healingstone.run_pipeline import (  # noqa: F401
+from .run_pipeline import (  # noqa: F401
     configure_logging,
     detect_pipeline_mode,
     enforce_accuracy_requirement,

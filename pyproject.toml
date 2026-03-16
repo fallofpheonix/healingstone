@@ -38,7 +38,7 @@ dev = [
 
 [project.scripts]
 healingstone-run = "healingstone.run_pipeline:main"
-healingstone-test = "healingstone.test_pipeline:main"
+healingstone-test = "healingstone.pipeline.run_pipeline:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -47,7 +47,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=healingstone.run_pipeline --cov=healingstone.runtime_config --cov=healingstone.runtime_paths --cov=healingstone.metrics_schema --cov-fail-under=45"
+addopts = "-q --cov=healingstone.pipeline.run_pipeline --cov=healingstone.core.runtime_config --cov=healingstone.core.runtime_paths --cov=healingstone.core.metrics_schema --cov-fail-under=45"
 testpaths = ["tests"]
 
 [tool.ruff]
@@ -62,8 +62,8 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 check_untyped_defs = true
 files = [
-  "src/healingstone/run_pipeline.py",
-  "src/healingstone/runtime_config.py",
-  "src/healingstone/runtime_paths.py",
-  "src/healingstone/metrics_schema.py",
+  "src/healingstone/pipeline/run_pipeline.py",
+  "src/healingstone/core/runtime_config.py",
+  "src/healingstone/core/runtime_paths.py",
+  "src/healingstone/core/metrics_schema.py",
 ]
