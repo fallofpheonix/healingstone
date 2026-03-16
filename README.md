@@ -23,7 +23,7 @@ pip install -r requirements.lock
 ## Canonical Execution
 
 ```bash
-python -m healingstone.run_pipeline
+python -m healingstone.pipeline.run_pipeline
 ```
 
 Console script entrypoints (after install):
@@ -179,6 +179,24 @@ Standard 3D reconstruction with RANSAC-initialization and ICP refinement.
 ```bash
 python -m healingstone.pipeline.run_pipeline --data-dir <path_to_ply_files>
 ```
+
+## Submission-Oriented Runs
+
+Use the local sample folders directly:
+
+```bash
+# 2D
+python -m healingstone.pipeline.run_pipeline --data-dir 2D --output-dir result
+
+# 3D (local run without strict test gate)
+python -m healingstone.pipeline.run_pipeline --data-dir 3D --output-dir result --min-required-accuracy 0
+```
+
+Typical generated artifacts (run-scoped):
+- `result/runs/<run_id>/results/reconstructed_model.ply`
+- `result/runs/<run_id>/results/alignment_metrics.json`
+- `result/runs/<run_id>/models/training_loss.png`
+- `result/runs/<run_id>/logs/pipeline.log`
 
 ## Repository Layout
 ```text

@@ -25,6 +25,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .venv
+.venv*/
 venv/
 ENV/
 .mypy_cache/
@@ -59,6 +60,8 @@ artifacts/latest_run
 !artifacts/logs/
 !artifacts/**/.gitkeep
 results_tuned_smoke/
+result/
+submission/
 test_output/
 test_output_patch/
 validation_results_*.md

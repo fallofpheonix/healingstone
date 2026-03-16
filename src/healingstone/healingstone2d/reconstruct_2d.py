@@ -115,7 +115,7 @@ def render_reconstruction(
     min_x, min_y = np.floor(np.min(all_pts, axis=0))
     max_x, max_y = np.ceil(np.max(all_pts, axis=0))
 
-    canvas_w: int, canvas_h = int(max_x - min_x) + 1, int(max_y - min_y) + 1
+    canvas_w, canvas_h = int(max_x - min_x) + 1, int(max_y - min_y) + 1
     canvas_w, canvas_h = min(canvas_w, 4096), min(canvas_h, 4096)
 
     offset: np.ndarray = np.eye(3, dtype=np.float32)
