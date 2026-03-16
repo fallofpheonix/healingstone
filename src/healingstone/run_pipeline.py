@@ -4,8 +4,6 @@ Automatically detects whether the input data directory contains 3D mesh files
 (.PLY / .OBJ) or 2D image files (.PNG / .JPG) and routes to the appropriate
 sub-pipeline.
 """
-"""End-to-end fragment reconstruction pipeline (3D and 2D)."""
-
 from __future__ import annotations
 
 import argparse
