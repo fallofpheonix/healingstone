@@ -23,7 +23,7 @@ pip install -r requirements.lock
 ## Canonical Execution
 
 ```bash
-python -m healingstone.run_pipeline
+python -m healingstone.pipeline.run_pipeline
 ```
 
 Console script entrypoints (after install):
@@ -157,6 +157,53 @@ pip-compile pyproject.toml --extra dev -o requirements.lock
 - Document canonical dataset placement and execution path.
 - Remove stale claims and dead code from docs.
 - Remove monolithic legacy script `healing_stones.py` to finalize architecture.
+
+## Usage: 2D Pipeline
+The restored 2D pipeline supports high-resolution (4K) fragment matching and assembly.
+
+```bash
+python -m healingstone.pipeline.run_pipeline --data-dir <path_to_images> --output-dir <output_path>
+```
+
+## Usage: 3D Pipeline
+Standard 3D reconstruction with RANSAC-initialization and ICP refinement.
+
+```bash
+python -m healingstone.pipeline.run_pipeline --data-dir <path_to_ply_files>
+```
+
+## Submission-Oriented Runs
+
+Use the local sample folders directly:
+
+```bash
+# 2D
+python -m healingstone.pipeline.run_pipeline --data-dir 2D --output-dir result
+
+# 3D (local run without strict test gate)
+python -m healingstone.pipeline.run_pipeline --data-dir 3D --output-dir result --min-required-accuracy 0
+```
+
+Typical generated artifacts (run-scoped):
+- `result/runs/<run_id>/results/reconstructed_model.ply`
+- `result/runs/<run_id>/results/alignment_metrics.json`
+- `result/runs/<run_id>/models/training_loss.png`
+- `result/runs/<run_id>/logs/pipeline.log`
+
+## Repository Layout
+```text
+.
+├── src/healingstone/
+│   ├── core/           # Utility, config, and schema logic
+│   ├── alignment/      # 3D ICP and Graph-based assembly
+│   ├── ml_models/      # Siamese and Surface ML architectures
+│   ├── healingstone2d/ # 2D image-based reconstruction
+│   └── pipeline/       # End-to-end orchestration
+├── configs/            # YAML configuration versioning
+├── tests/              # Comprehensive test suite
+├── data/               # Raw, interim, and processed datasets
+└── artifacts/          # Run-scoped results and trained weights
+```
 
 ## Project Archive
 - **Inputs**: 3D scans of fragments in `.PLY` or `.OBJ` format.

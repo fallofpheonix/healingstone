@@ -38,7 +38,17 @@ Canonical execution:
 
 ```bash
 cd healingstone
-python -m healingstone.run_pipeline
+python -m healingstone.pipeline.run_pipeline
+```
+
+Reference local execution examples:
+
+```bash
+# 2D sample fragments
+python -m healingstone.pipeline.run_pipeline --data-dir 2D --output-dir result
+
+# 3D sample fragments
+python -m healingstone.pipeline.run_pipeline --data-dir 3D --output-dir result
 ```
 
 Required packaged stages:
