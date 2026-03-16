@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  healingstone:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/app/data:ro
+      - ./artifacts:/app/artifacts
+      - ./configs:/app/configs:ro
+    environment:
+      - MPLCONFIGDIR=/tmp/matplotlib_cache
+      - PYTHONPATH=/app/src
+    command: >
+      --data-dir /app/data/raw/3d
+      --output-dir /app/artifacts
+      --config /app/configs/pipeline.yaml
+      --allow-overwrite-run
