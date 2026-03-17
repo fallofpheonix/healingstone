@@ -723,11 +723,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    from ..core.runtime_config import build_runtime_config, to_namespace
+    from ..services.reconstruction_service import execute_reconstruction
 
-    bundle = build_runtime_config(args)
-    effective_args = to_namespace(bundle)
-    run_pipeline(effective_args)
+    execute_reconstruction(args)
 
 
 if __name__ == "__main__":
