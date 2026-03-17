@@ -37,7 +37,7 @@ dev = [
 ]
 
 [project.scripts]
-healingstone-run = "healingstone.run_pipeline:main"
+healingstone-run = "healingstone.api.cli:main"
 healingstone-test = "healingstone.pipeline.run_pipeline:main"
 
 [tool.setuptools]
@@ -62,6 +62,10 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 check_untyped_defs = true
 files = [
+  "src/healingstone/api/cli.py",
+  "src/healingstone/services/reconstruction_service.py",
+  "src/healingstone/config/environment.py",
+  "src/healingstone/utils/runtime_info.py",
   "src/healingstone/pipeline/run_pipeline.py",
   "src/healingstone/core/runtime_config.py",
   "src/healingstone/core/runtime_paths.py",
