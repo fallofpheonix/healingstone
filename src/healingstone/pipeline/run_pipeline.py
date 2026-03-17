@@ -472,18 +472,6 @@ def run_pipeline(args: argparse.Namespace) -> None:
         # --- 3D pipeline ---
         set_deterministic_seed(args.seed)
 
-        # ------------------------------------------------------------------
-        # Auto-detect input type and dispatch to the appropriate sub-pipeline.
-        # ------------------------------------------------------------------
-        pipeline_mode = detect_pipeline_mode(run_paths.data_dir)
-
-        if pipeline_mode == "2d":
-            _run_2d_pipeline(args, run_paths)
-            return
-
-        # ------------------------------------------------------------------
-        # 3D pipeline (original implementation below).
-        # ------------------------------------------------------------------
         labels_csv = run_paths.labels_csv
         enforce_accuracy_gate = args.min_match_accuracy is not None and float(args.min_match_accuracy) > 0.0
         if enforce_accuracy_gate:
@@ -522,6 +510,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
             n_keypoints=args.n_keypoints,
         )
 
+        _train_cfg = getattr(args, "_train_config", {})
         similarity, candidate_pairs, pair_scores, diagnostics, _ = train_and_match_fragments(
             fragments=fragments,
             features=features,
@@ -541,6 +530,12 @@ def run_pipeline(args: argparse.Namespace) -> None:
             n_keypoints=args.n_keypoints,
             seed=args.seed,
             device=args.device,
+            emb_dim=_train_cfg.get("emb_dim", 64),
+            epochs=_train_cfg.get("epochs", 120),
+            batch_size=_train_cfg.get("batch_size", 64),
+            lr=_train_cfg.get("lr", 1e-3),
+            weight_decay=_train_cfg.get("weight_decay", 1e-5),
+            margin=_train_cfg.get("margin", 1.0),
         )
 
         selected_metrics_raw: Any = diagnostics.get("metrics_at_selected_threshold", {})

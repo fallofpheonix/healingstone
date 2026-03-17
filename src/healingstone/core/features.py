@@ -10,9 +10,13 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import numpy as np
-import open3d as o3d
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
+
+try:
+    import open3d as o3d
+except ImportError:
+    o3d = None  # type: ignore[assignment]
 
 from .preprocess import Fragment
 
@@ -32,7 +36,9 @@ class FeatureBundle:
     fpfh: np.ndarray
 
 
-def _to_point_cloud(points: np.ndarray, normals: np.ndarray) -> o3d.geometry.PointCloud:
+def _to_point_cloud(points: np.ndarray, normals: np.ndarray) -> "object":
+    if o3d is None:
+        raise ImportError("open3d is required for 3D feature extraction. Install with: pip install open3d")
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points)
     pcd.normals = o3d.utility.Vector3dVector(normals)
@@ -152,6 +158,8 @@ def detect_break_surface(
 
 def compute_fpfh(points: np.ndarray, normals: np.ndarray, radius: float, max_nn: int) -> np.ndarray:
     """Compute FPFH descriptors with Open3D."""
+    if o3d is None:
+        raise ImportError("open3d is required for FPFH feature computation. Install with: pip install open3d")
     pcd = _to_point_cloud(points, normals)
     fpfh = o3d.pipelines.registration.compute_fpfh_feature(
         pcd,

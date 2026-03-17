@@ -27,7 +27,7 @@ try:
     from .edge_detection import detect_edges, extract_contours
     from .match_fragments_2d import FragmentMatch, match_all_fragments
     from .preprocess_2d import Fragment2D, load_and_preprocess_fragments_2d
-    from .reconstruct_2d import assemble_reconstruction, run_2d_pipeline
+    from .reconstruct_2d import run_2d_pipeline
     from .shape_descriptors import ShapeDescriptor, extract_all_descriptors
 except ImportError:
     pass

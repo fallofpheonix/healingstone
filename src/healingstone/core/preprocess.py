@@ -6,11 +6,22 @@ import logging
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import numpy as np
-import open3d as o3d
-import torch
+
+try:
+    import open3d as o3d
+except ImportError:
+    o3d = None  # type: ignore[assignment]
+
+try:
+    import torch
+except ImportError:
+    torch = None  # type: ignore[assignment]
+
+if TYPE_CHECKING:
+    import open3d as o3d_type
 
 LOG = logging.getLogger(__name__)
 
@@ -25,7 +36,9 @@ class Fragment:
     points: np.ndarray
     normals: np.ndarray
 
-    def to_point_cloud(self) -> o3d.geometry.PointCloud:
+    def to_point_cloud(self) -> "o3d_type.geometry.PointCloud":
+        if o3d is None:
+            raise ImportError("open3d is required for 3D fragment processing. Install with: pip install open3d")
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(self.points)
         pcd.normals = o3d.utility.Vector3dVector(self.normals)
@@ -36,11 +49,12 @@ def set_deterministic_seed(seed: int = 42) -> None:
     """Set deterministic seeds for reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    if torch is not None:
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
 
 def discover_fragment_files(data_dir: Path) -> List[Path]:
@@ -58,8 +72,10 @@ def discover_fragment_files(data_dir: Path) -> List[Path]:
     return files
 
 
-def _load_fragment_geometry(path: Path, sample_points: int) -> o3d.geometry.PointCloud:
+def _load_fragment_geometry(path: Path, sample_points: int) -> "o3d_type.geometry.PointCloud":
     """Load file as mesh or point cloud and return sampled point cloud."""
+    if o3d is None:
+        raise ImportError("open3d is required for 3D fragment processing. Install with: pip install open3d")
     ext = path.suffix.lower()
 
     if ext == ".obj":
