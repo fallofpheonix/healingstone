@@ -32,7 +32,18 @@ ENV/
 .pytest_cache/
 .ruff_cache/
 .coverage
+.coverage.*
+htmlcov/
+dist/
+build/
 *.egg-info/
+
+# Env files
+.env
+
+# IDE
+.vscode/
+.idea/
 
 # Models
 models/
