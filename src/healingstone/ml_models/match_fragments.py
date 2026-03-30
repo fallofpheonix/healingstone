@@ -11,7 +11,24 @@ import numpy as np
 
 from ..core.features import FeatureBundle, build_augmented_descriptor
 from ..core.preprocess import Fragment
-from .train_model import SiameseModelBundle, cosine_similarity_matrix, encode_descriptors, train_siamese_model
+try:
+    from .train_model import SiameseModelBundle, cosine_similarity_matrix, encode_descriptors, train_siamese_model
+except ModuleNotFoundError as exc:
+    if exc.name != "torch":
+        raise
+    SiameseModelBundle = None  # type: ignore[assignment,misc]
+
+    def _raise_torch_required() -> None:
+        raise ImportError("torch is required for fragment matching. Install it with: pip install torch")
+
+    def cosine_similarity_matrix(*args, **kwargs):  # type: ignore[misc]
+        _raise_torch_required()
+
+    def encode_descriptors(*args, **kwargs):  # type: ignore[misc]
+        _raise_torch_required()
+
+    def train_siamese_model(*args, **kwargs):  # type: ignore[misc]
+        _raise_torch_required()
 
 LOG = logging.getLogger(__name__)
 
@@ -337,9 +354,41 @@ def train_and_match_fragments(
     dbscan_min_samples: int = 24,
     n_keypoints: int = 256,
     seed: int = 42,
+    emb_dim: int = 64,
+    epochs: int = 120,
+    batch_size: int = 64,
+    lr: float = 1e-3,
+    weight_decay: float = 1e-5,
+    margin: float = 1.0,
     device: str = "cpu",
 ) -> Tuple[np.ndarray, List[Tuple[int, int]], Dict[Tuple[int, int], float], Dict[str, float], SiameseModelBundle]:
-    """Train Siamese matcher and produce similarity matrix + candidate pairs."""
+    """Train Siamese matcher and produce similarity matrix + candidate pairs.
+
+    Parameters
+    ----------
+    fragments:
+        Preprocessed fragment objects to match.
+    features:
+        Mapping from fragment index to extracted ``FeatureBundle``.
+    models_dir:
+        Directory where the trained model checkpoint will be saved.
+    output_dir:
+        Directory for outputs such as labelling candidate CSV.
+    emb_dim:
+        Embedding dimensionality of the Siamese encoder.
+    epochs:
+        Number of training epochs.
+    batch_size:
+        Mini-batch size for training.
+    lr:
+        Learning rate for the AdamW optimiser.
+    weight_decay:
+        L2 weight regularisation coefficient.
+    margin:
+        Contrastive loss margin (positive pairs must be closer than this).
+    device:
+        PyTorch device string (``"cpu"`` or ``"cuda"``).
+    """
     rng = np.random.default_rng(seed)
     labels = load_pair_labels(labels_csv, fragments)
 
@@ -363,6 +412,12 @@ def train_and_match_fragments(
         x2=x2,
         y=y,
         models_dir=models_dir,
+        emb_dim=emb_dim,
+        epochs=epochs,
+        batch_size=batch_size,
+        lr=lr,
+        weight_decay=weight_decay,
+        margin=margin,
         device=device,
     )
 
