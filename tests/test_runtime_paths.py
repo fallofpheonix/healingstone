@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+import healingstone.core.runtime_paths as runtime_paths
 from healingstone.core.runtime_paths import (
     initialize_run_layout,
     resolve_artifact_root,
@@ -20,14 +21,13 @@ def test_data_dir_cli_strict(tmp_path: Path) -> None:
     frag_dir.mkdir(parents=True)
     _write_fragment(frag_dir / "a.ply")
 
-    resolved, used_legacy = resolve_data_dir(
+    resolved = resolve_data_dir(
         configured_data_dir=str(frag_dir),
         data_dir_source="cli",
         dataset_alias="3d",
         aliases={"3d": str(tmp_path / "alias")},
     )
     assert resolved == frag_dir.resolve()
-    assert used_legacy is False
 
 
 def test_data_dir_cli_missing_fails(tmp_path: Path) -> None:
@@ -42,10 +42,29 @@ def test_data_dir_cli_missing_fails(tmp_path: Path) -> None:
 
 def test_artifact_root_cli(tmp_path: Path) -> None:
     root = tmp_path / "artifacts"
-    resolved, used_legacy = resolve_artifact_root(str(root), output_dir_source="cli")
+    resolved = resolve_artifact_root(str(root), output_dir_source="cli")
     assert resolved == root.resolve()
     assert resolved.is_absolute()
-    assert used_legacy is False
+
+
+def test_default_paths_resolve_from_project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project_root = tmp_path / "repo"
+    data_dir = project_root / "data" / "raw" / "3d"
+    data_dir.mkdir(parents=True)
+    _write_fragment(data_dir / "a.ply")
+
+    monkeypatch.setattr(runtime_paths, "PROJECT_ROOT", project_root)
+
+    resolved_data = resolve_data_dir(
+        configured_data_dir=None,
+        data_dir_source="yaml",
+        dataset_alias="3d",
+        aliases={},
+    )
+    resolved_artifacts = resolve_artifact_root(None, output_dir_source="yaml")
+
+    assert resolved_data == data_dir.resolve()
+    assert resolved_artifacts == (project_root / "artifacts").resolve()
 
 
 def test_run_layout_collision(tmp_path: Path) -> None:

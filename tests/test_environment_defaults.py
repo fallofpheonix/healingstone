@@ -7,13 +7,13 @@ from healingstone.config.environment import apply_env_defaults
 
 
 def test_apply_env_defaults_fills_missing_values(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("HEALINGSTONE_DATA_DIR", "data/raw/v1")
+    monkeypatch.setenv("HEALINGSTONE_DATA_DIR", "data/raw/3d")
     monkeypatch.setenv("HEALINGSTONE_OUTPUT_DIR", "artifacts")
 
     args = Namespace(data_dir=None, output_dir=None, labels_csv=None)
     out = apply_env_defaults(args)
 
-    assert out.data_dir == "data/raw/v1"
+    assert out.data_dir == "data/raw/3d"
     assert out.output_dir == "artifacts"
 
 

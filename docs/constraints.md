@@ -26,8 +26,8 @@ Notes:
 Pipeline must process `.PLY` or `.OBJ` files. Meshes may contain holes, noise, irregular topology, and missing geometry.
 
 Repository reality:
-- `healingstone/3D/` contains local `.PLY` fragments
-- `healingstone/2D/` contains local `.png` references
+- `data/raw/3d/` is the canonical local `.PLY` fragment root
+- 2D inputs are expected from an explicit external directory passed to `--data-dir`
 - `data/3D_fragments.zip` is invalid as distributed: it is a truncated tar archive mislabeled as zip
 
 ### Automation Requirement
@@ -45,10 +45,10 @@ Reference local execution examples:
 
 ```bash
 # 2D sample fragments
-python -m healingstone.pipeline.run_pipeline --data-dir 2D --output-dir result
+python -m healingstone.pipeline.run_pipeline --data-dir /path/to/2d_fragments --output-dir artifacts
 
 # 3D sample fragments
-python -m healingstone.pipeline.run_pipeline --data-dir 3D --output-dir result
+python -m healingstone.pipeline.run_pipeline --data-dir data/raw/3d --output-dir artifacts
 ```
 
 Required packaged stages:
@@ -65,7 +65,7 @@ Required packaged stages:
 
 ### Dataset Limitations
 
-Available local 3D sample set in this repo contains 17 `.PLY` fragments under `healingstone/3D/`.
+Available local 3D sample set in this repo contains 17 `.PLY` fragments under `data/raw/3d/`.
 The external evaluation description references 12 rotated sections at uniform scale.
 
 Algorithms must tolerate:

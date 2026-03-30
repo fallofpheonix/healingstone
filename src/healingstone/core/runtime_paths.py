@@ -11,9 +11,8 @@ from pathlib import Path
 from typing import Dict, Optional
 
 CANONICAL_DATA_DIR = Path("data/raw/3d")
-LEGACY_DATA_DIR = Path("DataSet/3D")
 CANONICAL_ARTIFACT_ROOT = Path("artifacts")
-LEGACY_ARTIFACT_ROOT = Path("results")
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 @dataclass(frozen=True)
@@ -27,20 +26,26 @@ class ResolvedRunPaths:
     models_dir: Path
     logs_dir: Path
     cache_dir: Path
-    used_legacy_data: bool
-    used_legacy_output: bool
 
 
 def _normalize(path: Path | str) -> Path:
-    return Path(path).expanduser().resolve()
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute():
+        candidate = PROJECT_ROOT / candidate
+    return candidate.resolve()
+
+
+def project_root() -> Path:
+    """Return the repository root used for resolving relative runtime paths."""
+    return PROJECT_ROOT
 
 
 def _contains_fragments(path: Path) -> bool:
     if not path.exists():
         return False
-    patterns = ("*.ply", "*.PLY", "*.obj", "*.OBJ")
-    for pattern in patterns:
-        if next(path.rglob(pattern), None) is not None:
+    supported_suffixes = {".ply", ".obj"}
+    for candidate in path.rglob("*"):
+        if candidate.is_file() and candidate.suffix.lower() in supported_suffixes:
             return True
     return False
 
@@ -49,9 +54,9 @@ def _contains_images(path: Path) -> bool:
     """Check whether *path* contains any supported 2D image files."""
     if not path.exists():
         return False
-    patterns = ("*.png", "*.PNG", "*.jpg", "*.JPG", "*.jpeg", "*.JPEG")
-    for pattern in patterns:
-        if next(path.rglob(pattern), None) is not None:
+    supported_suffixes = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
+    for candidate in path.rglob("*"):
+        if candidate.is_file() and candidate.suffix.lower() in supported_suffixes:
             return True
     return False
 
@@ -83,23 +88,21 @@ def resolve_data_dir(
     data_dir_source: str,
     dataset_alias: str,
     aliases: Dict[str, str],
-) -> tuple[Path, bool]:
+) -> Path:
     """Resolve dataset path with strict precedence semantics.
 
     Supports both 3D mesh fragments (.PLY/.OBJ) and 2D image fragments
-    (.PNG/.JPG/.JPEG).
+    (.PNG/.JPG/.JPEG/.TIF/.TIFF/.BMP).
     """
-    used_legacy = False
-
     if data_dir_source in {"cli", "env"}:
         if configured_data_dir is None:
             raise FileNotFoundError("Explicit data_dir source provided but value is empty")
         candidate = _normalize(configured_data_dir)
         if not _contains_fragments(candidate) and not _contains_images(candidate):
             raise FileNotFoundError(
-                f"Explicit data_dir has no .PLY/.OBJ/.PNG/.JPG/.JPEG fragments: {candidate}"
+                f"Explicit data_dir has no supported fragments (.PLY/.OBJ/.PNG/.JPG/.JPEG/.TIF/.TIFF/.BMP): {candidate}"
             )
-        return candidate, used_legacy
+        return candidate
 
     alias_target = aliases.get(dataset_alias)
     if configured_data_dir:
@@ -110,41 +113,25 @@ def resolve_data_dir(
         candidate = _normalize(CANONICAL_DATA_DIR)
 
     if _contains_fragments(candidate) or _contains_images(candidate):
-        return candidate, used_legacy
-
-    legacy_candidate = _normalize(LEGACY_DATA_DIR)
-    if _contains_fragments(legacy_candidate) or _contains_images(legacy_candidate):
-        used_legacy = True
-        return legacy_candidate, used_legacy
+        return candidate
 
     raise FileNotFoundError(
-        f"No dataset fragments found. Checked candidate={candidate}, legacy={legacy_candidate}, alias={dataset_alias}."
+        f"No dataset fragments found under {candidate}. dataset_alias={dataset_alias!r}, configured_data_dir={configured_data_dir!r}."
     )
 
 
-def resolve_artifact_root(configured_output_dir: str | None, output_dir_source: str) -> tuple[Path, bool]:
-    """Resolve artifact root path with fallback only for non-explicit sources."""
-    used_legacy = False
+def resolve_artifact_root(configured_output_dir: str | None, output_dir_source: str) -> Path:
+    """Resolve artifact root path relative to the repository root."""
     if output_dir_source in {"cli", "env"}:
         if configured_output_dir is None:
             raise FileNotFoundError("Explicit output_dir source provided but value is empty")
         root = _normalize(configured_output_dir)
         _check_writable_dir(root)
-        return root, used_legacy
+        return root
 
-    canonical = _normalize(configured_output_dir or CANONICAL_ARTIFACT_ROOT)
-    if canonical.exists():
-        _check_writable_dir(canonical)
-        return canonical, used_legacy
-
-    legacy = _normalize(LEGACY_ARTIFACT_ROOT)
-    if legacy.exists():
-        _check_writable_dir(legacy)
-        used_legacy = True
-        return legacy, used_legacy
-
-    _check_writable_dir(canonical)
-    return canonical, used_legacy
+    root = _normalize(configured_output_dir or CANONICAL_ARTIFACT_ROOT)
+    _check_writable_dir(root)
+    return root
 
 
 def initialize_run_layout(
@@ -153,8 +140,6 @@ def initialize_run_layout(
     artifact_root: Path,
     allow_overwrite_run: bool,
     run_id: str | None = None,
-    used_legacy_data: bool = False,
-    used_legacy_output: bool = False,
 ) -> ResolvedRunPaths:
     rid = run_id or make_run_id()
     runs_root = artifact_root / "runs"
@@ -185,8 +170,6 @@ def initialize_run_layout(
         models_dir=_normalize(models_dir),
         logs_dir=_normalize(logs_dir),
         cache_dir=_normalize(cache_dir),
-        used_legacy_data=used_legacy_data,
-        used_legacy_output=used_legacy_output,
     )
     _update_latest_pointer(resolved)
     return resolved
