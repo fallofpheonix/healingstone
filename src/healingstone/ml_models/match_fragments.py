@@ -13,17 +13,22 @@ from ..core.features import FeatureBundle, build_augmented_descriptor
 from ..core.preprocess import Fragment
 try:
     from .train_model import SiameseModelBundle, cosine_similarity_matrix, encode_descriptors, train_siamese_model
-except ImportError:
+except ModuleNotFoundError as exc:
+    if exc.name != "torch":
+        raise
     SiameseModelBundle = None  # type: ignore[assignment,misc]
 
-    def cosine_similarity_matrix(*args, **kwargs):  # type: ignore[misc]
+    def _raise_torch_required() -> None:
         raise ImportError("torch is required for fragment matching. Install it with: pip install torch")
+
+    def cosine_similarity_matrix(*args, **kwargs):  # type: ignore[misc]
+        _raise_torch_required()
 
     def encode_descriptors(*args, **kwargs):  # type: ignore[misc]
-        raise ImportError("torch is required for fragment matching. Install it with: pip install torch")
+        _raise_torch_required()
 
     def train_siamese_model(*args, **kwargs):  # type: ignore[misc]
-        raise ImportError("torch is required for fragment matching. Install it with: pip install torch")
+        _raise_torch_required()
 
 LOG = logging.getLogger(__name__)
 
