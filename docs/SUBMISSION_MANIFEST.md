@@ -19,9 +19,9 @@ Pre-generated model weights are also available for convenience.
   - `artifacts/scan_run/runs/20260314T001313Z_8ce41b4/models/surface_classifier.pt`
 
 ## 3. Local Validation Runs
-- **2D command**: `python -m healingstone.pipeline.run_pipeline --data-dir 2D --output-dir result`
-- **3D command**: `python -m healingstone.pipeline.run_pipeline --data-dir 3D --output-dir result --min-required-accuracy 0`
-- **Recent successful 3D run**: `result/runs/20260316T204009Z_a8dd6da/`
+- **2D command**: `python -m healingstone.pipeline.run_pipeline --data-dir /path/to/2d_fragments --output-dir artifacts`
+- **3D command**: `python -m healingstone.pipeline.run_pipeline --data-dir data/raw/3d --output-dir artifacts --min-required-accuracy 0`
+- **Recent successful 3D run**: `artifacts/runs/20260316T204009Z_a8dd6da/`
 
 ## 4. Contact Instructions
 Send an email to **human-ai@cern.ch** with:

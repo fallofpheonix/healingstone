@@ -58,14 +58,13 @@ def test_resolve_data_dir_images_cli(tmp_path: Path) -> None:
     img_dir.mkdir()
     _write_image(img_dir / "a.png")
 
-    resolved, used_legacy = resolve_data_dir(
+    resolved = resolve_data_dir(
         configured_data_dir=str(img_dir),
         data_dir_source="cli",
         dataset_alias="2d",
         aliases={},
     )
     assert resolved == img_dir.resolve()
-    assert used_legacy is False
 
 
 def test_resolve_data_dir_mixed_fails(tmp_path: Path) -> None:
@@ -88,11 +87,10 @@ def test_resolve_data_dir_images_default(tmp_path: Path) -> None:
     img_dir.mkdir()
     _write_image(img_dir / "frag.png")
 
-    resolved, used_legacy = resolve_data_dir(
+    resolved = resolve_data_dir(
         configured_data_dir=str(img_dir),
         data_dir_source="yaml",
         dataset_alias="2d",
         aliases={},
     )
     assert resolved == img_dir.resolve()
-    assert used_legacy is False

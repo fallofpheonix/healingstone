@@ -1,7 +1,7 @@
 # Dataset Integrity Report
 
 **Generated:** 2026-03-16
-**Source Directory:** `3D/`
+**Source Directory:** `data/raw/3d/`
 
 **Total Files Scanned:** 17
 **Integrity Status:** ALL FILES LOADABLE

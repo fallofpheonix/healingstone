@@ -19,7 +19,20 @@ healingstone-run --help
 Run with explicit inputs:
 
 ```bash
-healingstone-run --data-dir 3D --output-dir artifacts
+healingstone-run --data-dir data/raw/3d --output-dir artifacts
+```
+
+## Repository Layout
+
+```text
+configs/                  Runtime configuration and dataset aliases
+data/raw/3d/              Canonical local fragment dataset root
+artifacts/                Generated runs, logs, models, results, submission bundles
+src/healingstone/api/     CLI entrypoints
+src/healingstone/services/Service-level orchestration
+src/healingstone/core/    Runtime policy, config, metrics, schema
+src/healingstone/pipeline/End-to-end 2D/3D execution
+src/healingstone/utils/   Shared runtime and visualization helpers
 ```
 
 ## Architecture
@@ -58,5 +71,6 @@ mypy
 ## Key Decisions
 
 - Keep run artifacts isolated under `artifacts/runs/<run_id>` to avoid accidental overwrite.
+- Resolve relative runtime paths from the project root, not the caller's working directory.
 - Preserve a compatibility entrypoint (`healingstone.run_pipeline`) for existing automation.
 - Keep strict schema checks on metrics output even in minimal runs.

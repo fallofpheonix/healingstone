@@ -8,12 +8,17 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Generator, List
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple
+
+import numpy as np
+
+if TYPE_CHECKING:
+    from ..alignment.align_fragments import AlignmentResult
+    from ..alignment.reconstruct import AssemblyResult
 
 LOG = logging.getLogger(__name__)
 
@@ -27,7 +32,7 @@ class StageMetric:
     end_time: float = 0.0
     elapsed_ms: float = 0.0
     memory_mb: float = 0.0
-    metadata: Dict[str, any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class MetricsCollector:
@@ -74,7 +79,7 @@ class MetricsCollector:
         """Total wall-clock time across all stages."""
         return sum(s.elapsed_ms for s in self.stages)
 
-    def summary(self) -> Dict[str, any]:
+    def summary(self) -> Dict[str, Any]:
         """Generate a metrics summary dictionary."""
         return {
             "total_elapsed_ms": round(self.total_elapsed_ms(), 2),
@@ -108,3 +113,25 @@ def _get_memory_mb() -> float:
         return round(usage.ru_maxrss / 1024 / 1024, 1)  # macOS: bytes -> MB
     except Exception:
         return 0.0
+
+
+def summarize_3d_metrics(
+    diagnostics: Mapping[str, Any],
+    alignments: Dict[Tuple[int, int], "AlignmentResult"],
+    assembly: "AssemblyResult",
+) -> Dict[str, Any]:
+    """Build the normalized 3D reconstruction metrics payload."""
+    rmses = [result.inlier_rmse for result in alignments.values() if result.success and np.isfinite(result.inlier_rmse)]
+    chamfers = [result.chamfer for result in alignments.values() if result.success and np.isfinite(result.chamfer)]
+
+    return {
+        "pairwise_match_accuracy": diagnostics.get("pairwise_match_accuracy", float("nan")),
+        "aligned_pairs": int(len(alignments)),
+        "successful_alignments": int(sum(1 for result in alignments.values() if result.success)),
+        "mean_icp_rmse": float(np.mean(rmses)) if rmses else float("nan"),
+        "mean_chamfer_distance": float(np.mean(chamfers)) if chamfers else float("nan"),
+        "reconstruction_completeness": float(assembly.completeness),
+        "assembled_fragments": int(len(assembly.global_transforms)),
+        "graph_nodes": int(assembly.graph.number_of_nodes()),
+        "graph_edges": int(assembly.graph.number_of_edges()),
+    }
