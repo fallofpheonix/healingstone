@@ -3,11 +3,11 @@
 This document consolidates the deliverables required for the **GSoC Healing Stones** evaluation as per the `docs/submission_guidelines.md`.
 
 ## 1. Automated Pipeline (GitHub)
-The codebase has been refactored, audited, and pushed to the `main` branch of the repository.
+The codebase is version-controlled in the GitHub repository and the submission branch should contain the current delivery state.
 
 - **GitHub Link**: [https://github.com/fallofpheonix/healingstone](https://github.com/fallofpheonix/healingstone)
-- **Branch**: `main`
-- **Execution**: Run `pip install -e .` followed by `healingstone-run` or `python -m healingstone.pipeline.run_pipeline`.
+- **Branch**: use the active submission branch
+- **Execution**: Run `pip install -e '.[runtime]'` followed by `healingstone-run` or `python -m healingstone.pipeline.run_pipeline`.
 
 ## 2. Pre-trained Models
 The project can train the Siamese encoder during pipeline execution and save it automatically in the run-scoped output directory.
