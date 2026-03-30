@@ -38,7 +38,7 @@ dev = [
 
 [project.scripts]
 healingstone-run = "healingstone.api.cli:main"
-healingstone-test = "healingstone.pipeline.run_pipeline:main"
+healingstone-test = "healingstone.test_pipeline:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
