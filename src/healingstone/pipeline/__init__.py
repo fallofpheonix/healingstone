@@ -33,10 +33,16 @@ __all__ = [
 ]
 
 
+def _load_exports() -> None:
+    run_pipeline_module = importlib.import_module(".run_pipeline", __name__)
+    for export_name in __all__:
+        globals()[export_name] = getattr(run_pipeline_module, export_name)
+
+
 def __getattr__(name: str) -> Any:
     if name in __all__:
-        run_pipeline_module = importlib.import_module(".run_pipeline", __name__)
-        return getattr(run_pipeline_module, name)
+        _load_exports()
+        return globals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
