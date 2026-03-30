@@ -29,7 +29,15 @@ def test_summarize_metrics_stable() -> None:
 
 def test_accuracy_gate_passes() -> None:
     enforce_accuracy_requirement(
-        metrics={"pairwise_match_accuracy": 0.81},
+        metrics={"pairwise_match_accuracy": 0.81, "n_labeled_pairs": 8},
+        min_required_accuracy=0.80,
+        evaluation_split="test",
+    )
+
+
+def test_accuracy_gate_skips_when_unlabeled() -> None:
+    enforce_accuracy_requirement(
+        metrics={"pairwise_match_accuracy": float("nan"), "n_labeled_pairs": 0},
         min_required_accuracy=0.80,
         evaluation_split="test",
     )
@@ -38,7 +46,7 @@ def test_accuracy_gate_passes() -> None:
 def test_accuracy_gate_fails_on_non_test_split() -> None:
     with pytest.raises(RuntimeError):
         enforce_accuracy_requirement(
-            metrics={"pairwise_match_accuracy": 0.99},
+            metrics={"pairwise_match_accuracy": 0.99, "n_labeled_pairs": 8},
             min_required_accuracy=0.80,
             evaluation_split="validation",
         )
@@ -47,7 +55,7 @@ def test_accuracy_gate_fails_on_non_test_split() -> None:
 def test_accuracy_gate_fails_on_low_accuracy() -> None:
     with pytest.raises(RuntimeError):
         enforce_accuracy_requirement(
-            metrics={"pairwise_match_accuracy": 0.79},
+            metrics={"pairwise_match_accuracy": 0.79, "n_labeled_pairs": 8},
             min_required_accuracy=0.80,
             evaluation_split="test",
         )
