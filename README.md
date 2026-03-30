@@ -9,12 +9,14 @@ The runtime detects input type and routes to the appropriate pipeline.
 ## Quick Start
 
 ```bash
-python -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -e .[dev]
+pip install -e '.[dev,runtime]'
 cp .env.example .env
 healingstone-run --help
 ```
+
+For full 3D execution, use Python `3.10` to `3.12`. The `open3d` and `torch` runtime extras are intentionally gated off on Python `3.13`.
 
 Run with explicit inputs:
 
@@ -66,6 +68,15 @@ Run fast quality checks:
 pytest -q
 ruff check .
 mypy
+```
+
+Run coverage explicitly when needed:
+
+```bash
+pytest --cov=healingstone.pipeline.run_pipeline \
+  --cov=healingstone.core.runtime_config \
+  --cov=healingstone.core.runtime_paths \
+  --cov=healingstone.core.metrics_schema
 ```
 
 ## Key Decisions

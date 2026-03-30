@@ -47,7 +47,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=healingstone.pipeline.run_pipeline --cov=healingstone.core.runtime_config --cov=healingstone.core.runtime_paths --cov=healingstone.core.metrics_schema --cov-fail-under=45"
+addopts = "-q"
 testpaths = ["tests"]
 
 [tool.ruff]

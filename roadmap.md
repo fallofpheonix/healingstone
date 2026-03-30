@@ -56,7 +56,7 @@ Implemented:
 - graph-based global assembly
 - run metadata, resolved-path metadata, metrics schema, plots
 - automated checks: `ruff`, `mypy`, `pytest`
-- verified packaged run on the local 17-fragment `healingstone/3D/` dataset
+- verified packaged run on the local 17-fragment `data/raw/3d/` dataset
 
 Not yet production-complete:
 - no validated labeled-pair dataset in-repo for real accuracy measurement
@@ -89,7 +89,7 @@ Observed baseline on local 17-fragment run:
 - define acceptance thresholds for completeness and Chamfer distance
 
 ### Phase 3: Runtime Robustness
-- exercise the packaged pipeline end-to-end on the included `healingstone/3D/` set
+- exercise the packaged pipeline end-to-end on the included `data/raw/3d/` set
 - capture failure cases for sparse or degenerate fragments
 - add tests around report generation and artifact layout
 

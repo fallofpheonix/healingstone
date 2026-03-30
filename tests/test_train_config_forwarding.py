@@ -3,7 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 
+pytest.importorskip("open3d")
 from healingstone.ml_models import match_fragments
 
 
