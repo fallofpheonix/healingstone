@@ -15,13 +15,13 @@ Pre-generated model weights are also available for convenience.
 
 - **Recommended Action**: Upload the following files to a Google Drive folder and include the link in your email to the mentors.
 - **Local File Paths**:
-  - `artifacts/runs/20260312T190849Z_8ce41b4/models/siamese_encoder.pt`
-  - `artifacts/scan_run/runs/20260314T001313Z_8ce41b4/models/surface_classifier.pt`
+  - `artifacts/runs/20260330T134400Z_b7ac4ff/models/siamese_encoder.pt`
+  - `artifacts/runs/20260330T134400Z_b7ac4ff/models/training_metrics.json`
 
 ## 3. Local Validation Runs
 - **2D command**: `python -m healingstone.pipeline.run_pipeline --data-dir /path/to/2d_fragments --output-dir artifacts`
-- **3D command**: `python -m healingstone.pipeline.run_pipeline --data-dir data/raw/3d --output-dir artifacts --min-required-accuracy 0`
-- **Recent successful 3D run**: `artifacts/runs/20260316T204009Z_a8dd6da/`
+- **3D command**: `healingstone-run --data-dir data/raw/3d --output-dir artifacts`
+- **Recent successful 3D run**: `artifacts/runs/20260330T134400Z_b7ac4ff/`
 
 ## 4. Contact Instructions
 Send an email to **human-ai@cern.ch** with:

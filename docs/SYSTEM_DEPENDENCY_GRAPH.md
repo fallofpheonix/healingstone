@@ -40,7 +40,7 @@ graph TD
 
 ## 4. Unused Modules & Dead Code
 - No orphaned files detected in `src/healingstone`.
-- Legacy files in root (`healing_stones.py`, etc.) have been identified for removal in previous phases.
+- Previously identified legacy root files have been removed from the current layout.
 
 ## 5. Performance Critical Paths
 - **Mesh Loading**: `healingstone.core.preprocess` (Bottle-necked by PLY parsing for 10M+ vertices).
