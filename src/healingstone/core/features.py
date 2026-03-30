@@ -7,12 +7,14 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import numpy as np
-import open3d as o3d
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
+
+if TYPE_CHECKING:
+    import open3d as o3d
 
 from .preprocess import Fragment
 
@@ -32,7 +34,8 @@ class FeatureBundle:
     fpfh: np.ndarray
 
 
-def _to_point_cloud(points: np.ndarray, normals: np.ndarray) -> o3d.geometry.PointCloud:
+def _to_point_cloud(points: np.ndarray, normals: np.ndarray) -> "o3d.geometry.PointCloud":
+    import open3d as o3d
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points)
     pcd.normals = o3d.utility.Vector3dVector(normals)
@@ -152,6 +155,7 @@ def detect_break_surface(
 
 def compute_fpfh(points: np.ndarray, normals: np.ndarray, radius: float, max_nn: int) -> np.ndarray:
     """Compute FPFH descriptors with Open3D."""
+    import open3d as o3d
     pcd = _to_point_cloud(points, normals)
     fpfh = o3d.pipelines.registration.compute_fpfh_feature(
         pcd,
