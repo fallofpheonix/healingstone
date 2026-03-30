@@ -15,9 +15,15 @@ try:
     from .train_model import SiameseModelBundle, cosine_similarity_matrix, encode_descriptors, train_siamese_model
 except ImportError:
     SiameseModelBundle = None  # type: ignore[assignment,misc]
-    cosine_similarity_matrix = None  # type: ignore[assignment]
-    encode_descriptors = None  # type: ignore[assignment]
-    train_siamese_model = None  # type: ignore[assignment]
+
+    def cosine_similarity_matrix(*args, **kwargs):  # type: ignore[misc]
+        raise ImportError("torch is required for fragment matching. Install it with: pip install torch")
+
+    def encode_descriptors(*args, **kwargs):  # type: ignore[misc]
+        raise ImportError("torch is required for fragment matching. Install it with: pip install torch")
+
+    def train_siamese_model(*args, **kwargs):  # type: ignore[misc]
+        raise ImportError("torch is required for fragment matching. Install it with: pip install torch")
 
 LOG = logging.getLogger(__name__)
 
@@ -351,7 +357,33 @@ def train_and_match_fragments(
     margin: float = 1.0,
     device: str = "cpu",
 ) -> Tuple[np.ndarray, List[Tuple[int, int]], Dict[Tuple[int, int], float], Dict[str, float], SiameseModelBundle]:
-    """Train Siamese matcher and produce similarity matrix + candidate pairs."""
+    """Train Siamese matcher and produce similarity matrix + candidate pairs.
+
+    Parameters
+    ----------
+    fragments:
+        Preprocessed fragment objects to match.
+    features:
+        Mapping from fragment index to extracted ``FeatureBundle``.
+    models_dir:
+        Directory where the trained model checkpoint will be saved.
+    output_dir:
+        Directory for outputs such as labelling candidate CSV.
+    emb_dim:
+        Embedding dimensionality of the Siamese encoder.
+    epochs:
+        Number of training epochs.
+    batch_size:
+        Mini-batch size for training.
+    lr:
+        Learning rate for the AdamW optimiser.
+    weight_decay:
+        L2 weight regularisation coefficient.
+    margin:
+        Contrastive loss margin (positive pairs must be closer than this).
+    device:
+        PyTorch device string (``"cpu"`` or ``"cuda"``).
+    """
     rng = np.random.default_rng(seed)
     labels = load_pair_labels(labels_csv, fragments)
 
