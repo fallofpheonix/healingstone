@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
 import sys
 
@@ -13,5 +12,4 @@ def test_module_help_works() -> None:
     )
     assert proc.returncode == 0
     assert "--config" in proc.stdout
-
 

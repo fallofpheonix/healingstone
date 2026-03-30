@@ -36,9 +36,13 @@ class Fragment:
 
 def set_deterministic_seed(seed: int = 42) -> None:
     """Set deterministic seeds for reproducibility."""
-    import torch
     random.seed(seed)
     np.random.seed(seed)
+    try:
+        import torch
+    except ModuleNotFoundError:
+        LOG.warning("torch not installed; skipping torch-specific deterministic seeding")
+        return
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)

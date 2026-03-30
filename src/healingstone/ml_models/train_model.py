@@ -134,16 +134,20 @@ def train_siamese_model(
     ckpt_path = models_dir / "siamese_encoder.pt"
     torch.save({"state_dict": model.state_dict(), "in_dim": x1.shape[1], "emb_dim": emb_dim}, ckpt_path)
 
-    import matplotlib.pyplot as plt
-    plt.figure(figsize=(7, 4))
-    plt.plot(losses, color="tab:blue", linewidth=2)
-    plt.xlabel("Epoch")
-    plt.ylabel("Contrastive Loss")
-    plt.title("Siamese Training Loss")
-    plt.grid(alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(models_dir / "training_loss.png", dpi=140)
-    plt.close()
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        LOG.warning("matplotlib not installed; skipping training loss plot")
+    else:
+        plt.figure(figsize=(7, 4))
+        plt.plot(losses, color="tab:blue", linewidth=2)
+        plt.xlabel("Epoch")
+        plt.ylabel("Contrastive Loss")
+        plt.title("Siamese Training Loss")
+        plt.grid(alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(models_dir / "training_loss.png", dpi=140)
+        plt.close()
 
     metrics = {
         "epochs": epochs,
