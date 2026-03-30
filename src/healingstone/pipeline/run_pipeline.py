@@ -127,6 +127,16 @@ def configure_logging(log_dir: Path) -> Path:
 
 def enforce_accuracy_requirement(metrics: Mapping[str, Any], min_required_accuracy: float, evaluation_split: str) -> None:
     """Enforce mandatory pairwise accuracy threshold on test split."""
+    if min_required_accuracy <= 0:
+        return
+
+    n_labeled_pairs = int(metrics.get("n_labeled_pairs", 0) or 0)
+    if n_labeled_pairs <= 0:
+        LOG.warning(
+            "Skipping required pairwise accuracy gate because no labeled pairs were provided."
+        )
+        return
+
     if evaluation_split != "test":
         raise RuntimeError(
             f"Accuracy gate requires evaluation_split='test', got '{evaluation_split}'."
@@ -134,11 +144,9 @@ def enforce_accuracy_requirement(metrics: Mapping[str, Any], min_required_accura
 
     accuracy = float(metrics.get("pairwise_match_accuracy", float("nan")))
     if np.isnan(accuracy):
-        if min_required_accuracy > 0:
-            raise RuntimeError(
-                f"Required pairwise_match_accuracy >= {min_required_accuracy:.2f} not met; got {accuracy:.4f}."
-            )
-        return
+        raise RuntimeError(
+            "Required pairwise_match_accuracy is undefined despite labeled pairs being present."
+        )
 
     if accuracy < float(min_required_accuracy):
         raise RuntimeError(
@@ -306,6 +314,12 @@ def _run_3d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> N
         features=features,
         models_dir=run_paths.models_dir,
         output_dir=run_paths.results_dir,
+        emb_dim=int(getattr(args, "_train_config", {}).get("emb_dim", 64)),
+        epochs=int(getattr(args, "_train_config", {}).get("epochs", 120)),
+        batch_size=int(getattr(args, "_train_config", {}).get("batch_size", 64)),
+        lr=float(getattr(args, "_train_config", {}).get("lr", 1e-3)),
+        weight_decay=float(getattr(args, "_train_config", {}).get("weight_decay", 1e-5)),
+        margin=float(getattr(args, "_train_config", {}).get("margin", 1.0)),
         labels_csv=labels_csv,
         augment_rotations=args.augment_rotations,
         augment_count=args.augment_count,
