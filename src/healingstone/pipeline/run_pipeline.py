@@ -524,12 +524,19 @@ def run_pipeline(args: argparse.Namespace) -> None:
             n_keypoints=args.n_keypoints,
         )
 
+        train_cfg = getattr(args, "_train_config", {})
         similarity, candidate_pairs, pair_scores, diagnostics, _ = train_and_match_fragments(
             fragments=fragments,
             features=features,
             models_dir=run_paths.models_dir,
             output_dir=run_paths.results_dir,
             labels_csv=labels_csv,
+            emb_dim=int(train_cfg.get("emb_dim", 64)),
+            epochs=int(train_cfg.get("epochs", 120)),
+            batch_size=int(train_cfg.get("batch_size", 64)),
+            lr=float(train_cfg.get("lr", 1e-3)),
+            weight_decay=float(train_cfg.get("weight_decay", 1e-5)),
+            margin=float(train_cfg.get("margin", 1.0)),
             augment_rotations=args.augment_rotations,
             augment_count=args.augment_count,
             candidate_top_k=args.candidate_top_k,
