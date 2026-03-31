@@ -38,7 +38,6 @@ dev = [
 
 [project.scripts]
 healingstone-run = "healingstone.api.cli:main"
-healingstone-test = "healingstone.test_pipeline:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -75,7 +74,6 @@ check_untyped_defs = true
 files = [
   "src/healingstone/api/cli.py",
   "src/healingstone/utils/runtime_info.py",
-  "src/healingstone/cli.py",
   "src/healingstone/schema/config.py",
   "src/healingstone/schema/metrics_schema.py",
   "src/healingstone/io/runtime_paths.py",

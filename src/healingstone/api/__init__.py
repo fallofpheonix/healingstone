@@ -1,5 +1,3 @@
-"""Public API entrypoints for command-line execution."""
+"""Public API package."""
 
-from .cli import main
-
-__all__ = ["main"]
+__all__ = ["cli"]

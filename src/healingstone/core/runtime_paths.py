@@ -9,6 +9,7 @@ from ..io.runtime_paths import (
     ResolvedRunPaths,
     _contains_fragments,
     _contains_images,
+    make_deterministic_run_id,
     project_root,
     write_resolved_paths_metadata,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "ResolvedRunPaths",
     "_contains_fragments",
     "_contains_images",
+    "make_deterministic_run_id",
     "project_root",
     "initialize_run_layout",
     "resolve_artifact_root",

@@ -92,6 +92,14 @@ def _descriptor_matrix(features: Dict[int, FeatureBundle], n: int) -> np.ndarray
     return np.vstack(desc).astype(np.float32)
 
 
+def _descriptor_similarity(descriptors: np.ndarray) -> np.ndarray:
+    norms = np.linalg.norm(descriptors, axis=1, keepdims=True) + 1e-12
+    normalized = descriptors / norms
+    similarity = normalized @ normalized.T
+    np.fill_diagonal(similarity, 1.0)
+    return similarity.astype(np.float32)
+
+
 def _build_self_supervised_pairs(
     fragments: List[Fragment],
     features: Dict[int, FeatureBundle],
@@ -361,7 +369,7 @@ def train_and_match_fragments(
     weight_decay: float = 1e-5,
     margin: float = 1.0,
     device: str = "cpu",
-) -> Tuple[np.ndarray, List[Tuple[int, int]], Dict[Tuple[int, int], float], Dict[str, float], SiameseModelBundle]:
+) -> Tuple[np.ndarray, List[Tuple[int, int]], Dict[Tuple[int, int], float], Dict[str, float], Optional[SiameseModelBundle]]:
     """Train Siamese matcher and produce similarity matrix + candidate pairs.
 
     Parameters
@@ -407,23 +415,33 @@ def train_and_match_fragments(
         n_keypoints=n_keypoints,
     )
 
-    bundle = train_siamese_model(
-        x1=x1,
-        x2=x2,
-        y=y,
-        models_dir=models_dir,
-        emb_dim=emb_dim,
-        epochs=epochs,
-        batch_size=batch_size,
-        lr=lr,
-        weight_decay=weight_decay,
-        margin=margin,
-        device=device,
-    )
-
     descriptors = _descriptor_matrix(features, n=len(fragments))
-    embeddings = encode_descriptors(descriptors, bundle=bundle, device=device)
-    similarity = cosine_similarity_matrix(embeddings)
+    bundle: Optional[SiameseModelBundle]
+    matcher_mode = "siamese"
+    if x1.shape[0] < 4:
+        LOG.info(
+            "Falling back to descriptor cosine matcher: only %d training pairs available",
+            x1.shape[0],
+        )
+        bundle = None
+        matcher_mode = "descriptor_cosine"
+        similarity = _descriptor_similarity(descriptors)
+    else:
+        bundle = train_siamese_model(
+            x1=x1,
+            x2=x2,
+            y=y,
+            models_dir=models_dir,
+            emb_dim=emb_dim,
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=lr,
+            weight_decay=weight_decay,
+            margin=margin,
+            device=device,
+        )
+        embeddings = encode_descriptors(descriptors, bundle=bundle, device=device)
+        similarity = cosine_similarity_matrix(embeddings)
 
     pair_scores: Dict[Tuple[int, int], float] = {}
     for i in range(similarity.shape[0]):
@@ -460,6 +478,7 @@ def train_and_match_fragments(
         "metrics_at_selected_threshold": calibrated,
         "metrics_at_threshold_0_5": base,
         "threshold_objective": threshold_objective,
+        "matcher_mode": matcher_mode,
     }
 
     LOG.info(

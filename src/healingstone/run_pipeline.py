@@ -1,11 +1,11 @@
-"""Backward-compatible command entrypoint.
-
-TODO: remove this compatibility module after external scripts migrate to
-`healingstone.api.cli:main`.
-"""
+"""Compatibility wrapper for legacy console scripts."""
 
 from __future__ import annotations
 
-from .api.cli import main
+from .pipeline.run_pipeline import main, parse_args, run_pipeline
 
-__all__ = ["main"]
+__all__ = ["main", "parse_args", "run_pipeline"]
+
+
+if __name__ == "__main__":
+    main()

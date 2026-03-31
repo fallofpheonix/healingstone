@@ -179,8 +179,8 @@ def save_ply_ascii(filepath: str, vertices: np.ndarray):
 # ─────────────────────────────────────────────
 
 def run_test(n_fragments: int = 6, out_base: str = "test_output"):
-    from .run_pipeline import run_pipeline
-    from ..core.runtime_config import build_runtime_config, to_namespace
+    from healingstone.api.cli import main
+    import sys
 
     data_dir = os.path.join(out_base, "synthetic_fragments")
     out_dir  = os.path.join(out_base, "results")

@@ -7,6 +7,8 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      MPLCONFIGDIR: /tmp/mplcache
     strategy:
       fail-fast: false
       matrix:
@@ -23,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .[dev]
+          python -m pip install -e .[dev,runtime]
 
       - name: Verify lockfile consistency
         run: |
@@ -37,3 +39,19 @@ jobs:
 
       - name: Pytest
         run: pytest
+
+      - name: CLI Smoke
+        run: |
+          healingstone-run --data-dir data/sample/3d --output-dir smoke-artifacts --min-required-accuracy 0 --allow-overwrite-run
+          run_dir=$(find smoke-artifacts/runs -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)
+          test -f "$run_dir/reconstruction.ply"
+          test -f "$run_dir/metrics.json"
+          python - <<'PY'
+          import json
+          import pathlib
+          runs = sorted(pathlib.Path("smoke-artifacts/runs").iterdir())
+          run_dir = runs[-1]
+          metrics = json.loads((run_dir / "metrics.json").read_text())
+          assert 0.0 <= metrics["reconstruction_completeness"] <= 1.0
+          assert metrics["successful_alignments"] >= 0
+          PY

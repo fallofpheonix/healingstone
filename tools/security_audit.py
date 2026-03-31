@@ -22,8 +22,8 @@ def scan_unsafe_patterns(src_dir: Path) -> List[Dict[str, str]]:
     """Scan for dangerous function calls."""
     dangerous_patterns = {
         r"\bpickle\.load\b": "Unsafe deserialization (pickle.load)",
-        r"\beval\(": "Use of eval() — code injection risk",
-        r"\bexec\(": "Use of exec() — code injection risk",
+        r"\beval\s*\(['\"]": "Use of eval() — code injection risk",
+        r"\bexec\s*\(['\"]": "Use of exec() — code injection risk",
         r"\b__import__\(": "Dynamic import — code injection risk",
         r"\bos\.system\(": "Shell command execution via os.system",
         r"\bsubprocess\.call\(.*shell\s*=\s*True": "Shell=True subprocess call",

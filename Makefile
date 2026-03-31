@@ -1,18 +1,14 @@
-# Engineering-Grade Makefile for healingstone
-
 .PHONY: setup run test clean help
 
-# Environment configuration
 PYTHON = python3
 PIP = $(PYTHON) -m pip
-PYTEST = pytest
-SRC_DIR = src/healingstone
+PYTEST = $(PYTHON) -m pytest
 
 help:
 	@echo "Available commands:"
 	@echo "  make setup      Initialize environment and install dependencies"
-	@echo "  make run        Execute full reconstruction pipeline with default config"
-	@echo "  make test       Run all unit and integration tests"
+	@echo "  make run        Execute sample 3D reconstruction via the canonical CLI"
+	@echo "  make test       Run the pytest suite"
 	@echo "  make clean      Remove build artifacts and cache files"
 
 setup:
@@ -20,10 +16,10 @@ setup:
 	$(PIP) install -e ".[dev,runtime]"
 
 run:
-	$(PYTHON) -m healingstone.cli run --config configs/pipeline.yaml
+	MPLCONFIGDIR=/tmp/mplcache healingstone-run --data-dir data/sample/3d --output-dir artifacts --min-required-accuracy 0 --allow-overwrite-run
 
 test:
-	$(PYTEST) tests/unit tests/integration
+	MPLCONFIGDIR=/tmp/mplcache $(PYTEST) -q
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +

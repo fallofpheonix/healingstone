@@ -8,8 +8,11 @@ import json
 import logging
 import math
 import platform
+import shutil
 import subprocess
 import traceback
+from datetime import datetime, timezone
+from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, Dict, Mapping
@@ -23,6 +26,7 @@ from ..core.runtime_paths import (
     _contains_fragments,
     _contains_images,
     initialize_run_layout,
+    make_deterministic_run_id,
     project_root,
     resolve_artifact_root,
     resolve_data_dir,
@@ -32,6 +36,13 @@ from ..utils.visualization import (
     plot_alignment_snapshots,
     plot_final_reconstruction,
     plot_similarity_matrix,
+)
+from .validators import validate_mesh_integrity
+from .validators import (
+    validate_alignment_results,
+    validate_candidate_pairs_nonempty,
+    validate_global_transforms,
+    validate_metrics_payload,
 )
 
 LOG = logging.getLogger(__name__)
@@ -170,7 +181,7 @@ def _serialize_effective_config(args: argparse.Namespace) -> Dict[str, object]:
 def _write_run_metadata(args: argparse.Namespace, run_paths: ResolvedRunPaths, log_path: Path) -> None:
     payload = {
         "run_id": run_paths.run_id,
-        "timestamp_utc": run_paths.run_id.split("_")[0],
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "project_root": str(project_root()),
         "git_commit": _git_commit(),
         "config_hash": getattr(args, "_config_hash", "unknown"),
@@ -201,7 +212,51 @@ def _write_error_log(run_paths: ResolvedRunPaths | None, exc: Exception) -> None
         "error": str(exc),
         "traceback": traceback.format_exc(),
     }
-    (run_paths.logs_dir / "run_error.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    error_path = run_paths.logs_dir / "run_error.json"
+    error_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    _write_logs_index(run_paths, run_paths.logs_dir / "pipeline.log", error_path)
+
+
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.write_text(json.dumps(_json_safe(dict(payload)), indent=2), encoding="utf-8")
+
+
+def _write_logs_index(run_paths: ResolvedRunPaths, log_path: Path, error_path: Path | None = None) -> None:
+    payload = {
+        "pipeline_log": str(log_path),
+        "error_log": str(error_path) if error_path is not None and error_path.exists() else None,
+    }
+    _write_json(run_paths.run_dir / "logs.json", payload)
+
+
+def _publish_reconstruction_alias(run_paths: ResolvedRunPaths, source_path: Path, target_name: str) -> None:
+    if not source_path.exists():
+        raise FileNotFoundError(f"Expected reconstruction output missing: {source_path}")
+    target_path = run_paths.run_dir / target_name
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source_path, target_path)
+
+
+def _write_metrics_summary(run_paths: ResolvedRunPaths, pipeline_mode: str, metrics: Mapping[str, Any]) -> None:
+    payload = {"pipeline_mode": pipeline_mode, **dict(metrics)}
+    _write_json(run_paths.run_dir / "metrics.json", payload)
+    _write_json(run_paths.results_dir / "metrics.json", payload)
+
+
+def _check_runtime_dependencies(pipeline_mode: str) -> None:
+    required = ["cv2"] if pipeline_mode == "2d" else ["open3d", "torch"]
+    missing = []
+    for module_name in required:
+        try:
+            import_module(module_name)
+        except ModuleNotFoundError:
+            missing.append(module_name)
+    if missing:
+        extras = "runtime" if pipeline_mode == "3d" else "runtime"
+        raise ImportError(
+            f"Missing runtime dependencies for {pipeline_mode} pipeline: {', '.join(missing)}. "
+            f"Install with: pip install 'healingstone[{extras}]'"
+        )
 
 
 def _resolve_run_paths(args: argparse.Namespace) -> ResolvedRunPaths:
@@ -221,11 +276,17 @@ def _resolve_run_paths(args: argparse.Namespace) -> ResolvedRunPaths:
     )
     if isinstance(artifact_root, tuple):
         artifact_root = artifact_root[0]
+    run_id = make_deterministic_run_id(
+        data_dir=data_dir,
+        config_hash=getattr(args, "_config_hash", "unknown"),
+        labels_csv=args.labels_csv,
+    )
     return initialize_run_layout(
         data_dir=data_dir,
         labels_csv=args.labels_csv,
         artifact_root=artifact_root,
         allow_overwrite_run=bool(args.allow_overwrite_run),
+        run_id=run_id,
     )
 
 
@@ -262,13 +323,18 @@ def _run_2d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> N
     }
     report_path = run_paths.results_dir / "alignment_metrics.json"
     report_path.write_text(json.dumps(_json_safe(report), indent=2), encoding="utf-8")
+    reconstruction_path = run_paths.results_dir / "reconstructed_2d.png"
+    if not reconstruction_path.exists():
+        raise FileNotFoundError(f"2D reconstruction output missing: {reconstruction_path}")
+    _publish_reconstruction_alias(run_paths, reconstruction_path, "reconstruction.png")
+    _write_metrics_summary(run_paths, "2d", metrics)
 
     LOG.info("2D pipeline complete. Metrics report: %s", report_path)
 
 
 def _run_3d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> None:
-    from ..alignment.align_fragments import align_candidate_pairs
-    from ..alignment.reconstruct import assemble_global_reconstruction, merge_and_save_reconstruction
+    from ..core.geometry.align_fragments import align_candidate_pairs
+    from ..core.geometry.reconstruct import assemble_global_reconstruction, merge_and_save_reconstruction
     from ..core.features import extract_all_features
     from ..core.preprocess import load_and_preprocess_fragments, set_deterministic_seed
     from ..ml_models.match_fragments import train_and_match_fragments
@@ -339,6 +405,7 @@ def _run_3d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> N
         seed=args.seed,
         device=args.device,
     )
+    validate_candidate_pairs_nonempty(candidate_pairs)
 
     selected_metrics_raw: Any = diagnostics.get("metrics_at_selected_threshold", {})
     selected_metrics: Dict[str, float] = selected_metrics_raw if isinstance(selected_metrics_raw, dict) else {}
@@ -366,6 +433,7 @@ def _run_3d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> N
         voxel_size=args.voxel_size,
         top_n=args.align_top_n,
     )
+    validate_alignment_results(alignments)
 
     plot_alignment_snapshots(fragments, alignments, run_paths.results_dir, max_plots=min(5, args.align_top_n))
 
@@ -374,6 +442,7 @@ def _run_3d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> N
         pair_scores=pair_scores,
         alignments=alignments,
     )
+    validate_global_transforms(assembly.global_transforms)
 
     reconstructed_pcd = merge_and_save_reconstruction(
         fragments=fragments,
@@ -386,7 +455,7 @@ def _run_3d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> N
     if merged_points.size > 0:
         plot_final_reconstruction(merged_points, run_paths.results_dir / "final_reconstruction.png")
 
-    metrics = summarize_3d_metrics(
+    metrics = summarize_metrics(
         diagnostics=diagnostics,
         alignments=alignments,
         assembly=assembly,
@@ -394,11 +463,20 @@ def _run_3d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> N
     metrics["min_required_accuracy"] = float(args.min_required_accuracy)
     metrics["evaluation_split"] = str(args.evaluation_split)
     validate_metrics_schema(metrics)
+    validate_metrics_payload(metrics)
+    if not validate_mesh_integrity(run_paths.results_dir / "reconstructed_model.ply"):
+        raise RuntimeError("Reconstruction output failed integrity validation")
     enforce_accuracy_requirement(
         metrics=metrics,
         min_required_accuracy=float(args.min_required_accuracy),
         evaluation_split=str(args.evaluation_split),
     )
+    _publish_reconstruction_alias(
+        run_paths,
+        run_paths.results_dir / "reconstructed_model.ply",
+        "reconstruction.ply",
+    )
+    _write_metrics_summary(run_paths, "3d", metrics)
 
     report = {
         "config": _serialize_effective_config(args),
@@ -439,12 +517,15 @@ def _run_3d_pipeline(args: argparse.Namespace, run_paths: ResolvedRunPaths) -> N
 def run_pipeline(args: argparse.Namespace) -> None:
     """Execute full reconstruction pipeline."""
     run_paths: ResolvedRunPaths | None = None
+    log_path: Path | None = None
     try:
         run_paths = _resolve_run_paths(args)
         log_path = configure_logging(run_paths.logs_dir)
+        _write_logs_index(run_paths, log_path)
         _write_run_metadata(args, run_paths, log_path)
 
         pipeline_mode = detect_pipeline_mode(run_paths.data_dir)
+        _check_runtime_dependencies(pipeline_mode)
         LOG.info("Detected input type: %s", pipeline_mode)
 
         if pipeline_mode == "2d":

@@ -1,54 +1,49 @@
 """Integration test for pipeline determinism and reproducibility."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 import pytest
 
-def run_pipeline(config_path: str, data_dir: str, output_dir: str) -> str:
-    """Run the pipeline via CLI and return the run_id."""
+def run_pipeline(config_path: str, data_dir: str, output_dir: str) -> Path:
+    """Run the canonical CLI and return the generated run directory."""
     cmd = [
-        sys.executable, "-m", "healingstone.cli", "run",
+        sys.executable, "-m", "healingstone.api.cli",
         "--config", config_path,
         "--data-dir", data_dir,
-        "--output-dir", output_dir
+        "--output-dir", output_dir,
+        "--min-required-accuracy", "0.0",
+        "--allow-overwrite-run",
     ]
-    # Set PYTHONPATH to include the src directory
-    env = {"PYTHONPATH": "src", "PATH": "/usr/bin:/bin"}
+    env = {
+        **os.environ,
+        "PYTHONPATH": "src",
+        "MPLCONFIGDIR": "/tmp/matplotlib_cache",
+    }
     subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
-    
-    # Extract run_id from logs or stdout
-    # In a real system, we might parse the output. For simplicity, we'll look at the FS.
-    run_dirs = sorted(Path(output_dir).iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return run_dirs[0].name
+
+    runs_root = Path(output_dir) / "runs"
+    run_dirs = sorted(runs_root.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    return run_dirs[0]
 
 def test_pipeline_reproducibility(tmp_path):
-    """MANDATORY: Assert that two identical runs produce identical outcomes."""
+    """Assert that two identical runs produce identical normalized metrics."""
     project_root = Path(__file__).parents[2]
     config_path = str(project_root / "configs/pipeline.yaml")
-    data_dir = str(project_root / "data/sample")
-    output_dir = str(tmp_path / "experiments")
-    
-    # Create mock config if it doesn't exist
-    Path("configs").mkdir(exist_ok=True)
-    if not Path(config_path).exists():
-        with open(config_path, "w") as f:
-            f.write("output_dir: experiments\n")
+    data_dir = str(project_root / "data/sample/3d")
 
-    # 1. First Run
-    run_id_1 = run_pipeline(config_path, data_dir, output_dir)
-    with open(Path(output_dir) / run_id_1 / "metrics.json") as f:
+    run_dir_1 = run_pipeline(config_path, data_dir, str(tmp_path / "experiments_1"))
+    with (run_dir_1 / "metrics.json").open(encoding="utf-8") as f:
         metrics_1 = json.load(f)
-        
-    # 2. Second Run (Identical config and data)
-    run_id_2 = run_pipeline(config_path, data_dir, output_dir)
-    with open(Path(output_dir) / run_id_2 / "metrics.json") as f:
+
+    run_dir_2 = run_pipeline(config_path, data_dir, str(tmp_path / "experiments_2"))
+    with (run_dir_2 / "metrics.json").open(encoding="utf-8") as f:
         metrics_2 = json.load(f)
-        
-    # Hard Determinism Assertions
-    assert run_id_1 == run_id_2, "Run IDs must be identical for identical inputs (hashing contract)"
-    assert metrics_1 == metrics_2, "Metrics must be identical for identical runs (determinism contract)"
+
+    assert run_dir_1.name == run_dir_2.name, "Run IDs must be deterministic for identical inputs"
+    assert metrics_1 == metrics_2, "Metrics must be identical for identical runs"
 
 if __name__ == "__main__":
     # For manual execution

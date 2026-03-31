@@ -60,10 +60,18 @@ def test_run_pipeline_forwards_train_config(monkeypatch, tmp_path: Path) -> None
 
     fake_match.train_and_match_fragments = fake_train_and_match_fragments
 
-    fake_align = ModuleType("healingstone.alignment.align_fragments")
-    fake_align.align_candidate_pairs = lambda **_: {}
+    fake_align = ModuleType("healingstone.core.geometry.align_fragments")
+    fake_align.align_candidate_pairs = lambda **_: {
+        (0, 1): SimpleNamespace(
+            score_prior=0.95,
+            fitness=0.8,
+            inlier_rmse=0.01,
+            chamfer=0.02,
+            success=True,
+        )
+    }
 
-    fake_reconstruct = ModuleType("healingstone.alignment.reconstruct")
+    fake_reconstruct = ModuleType("healingstone.core.geometry.reconstruct")
     fake_reconstruct.assemble_global_reconstruction = lambda **_: SimpleNamespace(
         completeness=1.0,
         global_transforms={0: np.eye(4, dtype=np.float32)},
@@ -76,8 +84,8 @@ def test_run_pipeline_forwards_train_config(monkeypatch, tmp_path: Path) -> None
     monkeypatch.setitem(sys.modules, "healingstone.core.preprocess", fake_preprocess)
     monkeypatch.setitem(sys.modules, "healingstone.core.features", fake_features)
     monkeypatch.setitem(sys.modules, "healingstone.ml_models.match_fragments", fake_match)
-    monkeypatch.setitem(sys.modules, "healingstone.alignment.align_fragments", fake_align)
-    monkeypatch.setitem(sys.modules, "healingstone.alignment.reconstruct", fake_reconstruct)
+    monkeypatch.setitem(sys.modules, "healingstone.core.geometry.align_fragments", fake_align)
+    monkeypatch.setitem(sys.modules, "healingstone.core.geometry.reconstruct", fake_reconstruct)
 
     monkeypatch.setattr(pipeline, "resolve_data_dir", lambda **_: (data_dir, False))
     monkeypatch.setattr(pipeline, "resolve_artifact_root", lambda **_: (artifact_root, False))
@@ -85,6 +93,9 @@ def test_run_pipeline_forwards_train_config(monkeypatch, tmp_path: Path) -> None
     monkeypatch.setattr(pipeline, "plot_similarity_matrix", lambda *args, **kwargs: None)
     monkeypatch.setattr(pipeline, "plot_alignment_snapshots", lambda *args, **kwargs: None)
     monkeypatch.setattr(pipeline, "plot_final_reconstruction", lambda *args, **kwargs: None)
+    monkeypatch.setattr(pipeline, "validate_mesh_integrity", lambda path: True)
+    monkeypatch.setattr(pipeline, "_publish_reconstruction_alias", lambda *args, **kwargs: None)
+    monkeypatch.setattr(pipeline, "_write_metrics_summary", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         pipeline,
         "summarize_metrics",

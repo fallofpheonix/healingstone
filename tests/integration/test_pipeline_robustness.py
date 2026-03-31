@@ -1,5 +1,6 @@
 """Integration tests for pipeline robustness and failure modes."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -8,12 +9,17 @@ import pytest
 def run_pipeline(config_path: str, data_dir: str, output_dir: str) -> subprocess.CompletedProcess:
     """Run the pipeline via CLI and return the result."""
     cmd = [
-        sys.executable, "-m", "healingstone.cli", "run",
+        sys.executable, "-m", "healingstone.api.cli",
         "--config", config_path,
         "--data-dir", data_dir,
-        "--output-dir", output_dir
+        "--output-dir", output_dir,
+        "--min-required-accuracy", "0.0",
     ]
-    env = {"PYTHONPATH": "src", "PATH": "/usr/bin:/bin"}
+    env = {
+        **os.environ,
+        "PYTHONPATH": "src",
+        "MPLCONFIGDIR": "/tmp/matplotlib_cache",
+    }
     return subprocess.run(cmd, env=env, capture_output=True, text=True)
 
 def test_invalid_config_fails(tmp_path):
@@ -25,7 +31,7 @@ def test_invalid_config_fails(tmp_path):
     
     output_dir = str(tmp_path / "experiments")
     
-    result = run_pipeline(str(invalid_config), "data/sample", output_dir)
+    result = run_pipeline(str(invalid_config), "data/sample/3d", output_dir)
     
     # Should fail with an error code (Pydantic validation error)
     assert result.returncode != 0

@@ -20,7 +20,7 @@ def benchmark_matching(num_fragments: int) -> float:
         for j in range(i + 1, num_fragments):
             # Simulated heavy computation (e.g. ICP or PointNet inference)
             _ = np.linalg.norm(fragments[i].points[0] - fragments[j].points[0])
-            time.sleep(0.001) # Simulated cost
+
             
     return time.time() - start_time
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import shutil
 import subprocess
 from dataclasses import asdict, dataclass
@@ -81,6 +82,22 @@ def _git_short_commit() -> str:
 def make_run_id() -> str:
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return f"{ts}_{_git_short_commit()}"
+
+
+def make_deterministic_run_id(
+    *,
+    data_dir: Path,
+    config_hash: str,
+    labels_csv: Path | None = None,
+) -> str:
+    payload = {
+        "data_dir": str(_normalize(data_dir)),
+        "labels_csv": str(_normalize(labels_csv)) if labels_csv is not None else None,
+        "config_hash": config_hash,
+        "git_commit": _git_short_commit(),
+    }
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()[:16]
 
 
 def resolve_data_dir(

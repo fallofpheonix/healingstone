@@ -5,15 +5,21 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
-    from ..alignment.align_fragments import AlignmentResult
-    from ..core.preprocess import Fragment
+    from ..core.geometry.align_fragments import AlignmentResult
+    from ..core.geometry.preprocess import Fragment
+
+
+def _plt():
+    import matplotlib.pyplot as plt
+
+    return plt
 
 
 def plot_similarity_matrix(similarity: np.ndarray, fragments: List["Fragment"], out_path: Path) -> None:
+    plt = _plt()
     labels = [fragment.name for fragment in fragments]
     fig, ax = plt.subplots(figsize=(8, 7))
     image = ax.imshow(similarity, cmap="viridis", vmin=-1, vmax=1)
@@ -39,6 +45,7 @@ def plot_alignment_snapshots(
     output_dir: Path,
     max_plots: int = 4,
 ) -> None:
+    plt = _plt()
     ordered = sorted(
         alignments.values(),
         key=lambda result: (result.success, -result.score_prior, -result.fitness),
@@ -105,6 +112,7 @@ def plot_alignment_snapshots(
 
 
 def plot_final_reconstruction(points: np.ndarray, out_path: Path) -> None:
+    plt = _plt()
     fig = plt.figure(figsize=(8, 7))
     ax = fig.add_subplot(111, projection="3d")
     sampled = points[:: max(1, points.shape[0] // 15000)]

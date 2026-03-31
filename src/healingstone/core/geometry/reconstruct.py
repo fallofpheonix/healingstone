@@ -12,7 +12,7 @@ import numpy as np
 import open3d as o3d
 
 from .align_fragments import AlignmentResult
-from ..core.preprocess import Fragment
+from .preprocess import Fragment
 
 LOG = logging.getLogger(__name__)
 
