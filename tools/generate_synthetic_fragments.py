@@ -1,6 +1,5 @@
 import random
 import argparse
-import math
 from pathlib import Path
 
 def generate_alignable_ply(output_path, fragment_id, num_points=200):
