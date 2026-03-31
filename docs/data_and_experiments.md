@@ -1,42 +1,52 @@
-# Data and Experiments: Healingstone
+# Data and Evaluation: Healing Stones
 
 ## 1. Data Schema and Types
 The system operates on three primary data types:
-
 - **3D Meshes**: `.PLY` (canonical), `.OBJ` (supported).
 - **2D Images**: `.PNG`, `.JPG`, `.TIF`.
-- **Metrics**: JSON payloads satisfying version `1` of the metrics schema.
+- **Metrics**: Versioned JSON payloads for tracking pipeline performance.
 
 ### Canonical Path Policies
-- **Input**: `data/raw/3d/` (fragment dataset).
-- **Interim**: `data/interim/` (preprocessed point clouds).
-- **Processed**: `data/processed/` (labeled samples, if any).
-- **Output**: `artifacts/runs/<run_id>/` (isolated per run).
+- **Raw Input**: `data/raw/3d/` (fragment datasets).
+- **Processing Artifacts**: `artifacts/runs/<run_id>/` (isolated per run).
+- **Caching**: `data/cache/` (reusable feature payloads).
 
 ---
 
-## 2. Dataset Integrity Status
-- **Verification Summary**: 
-  - Canonical 3D run (17 fragments) verified for zero data loss.
-  - Fragment meshes validated for normal estimation and point density.
-  - No data overlaps or corruption detected in `data/raw/3d`.
+## 2. Dataset Integrity & Ground Truth
+- **Verification**: All fragments are scanned for mesh integrity, normal consistency, and point density.
+- **Ground Truth**: Evaluation requires annotated fragment correspondences and reference alignments (if available) to verify pipeline accuracy.
 
 ---
 
-## 3. Experiment Log
-Tracking significant baseline results and ablation studies.
+## 3. Evaluation Framework
+The system is evaluated across four key dimensions:
 
-| ID | Configuration | Result | Note |
+### 1. Matching Performance
+- **Matching Accuracy**: Correctly identified fragment matches compared to ground truth pairs.
+- **Precision**: $\frac{\text{correct matches}}{\text{predicted matches}}$
+- **Recall**: $\frac{\text{correct matches}}{\text{true matches}}$
+- **F1-Score**: Harmonic mean of Precision and Recall.
+
+### 2. Alignment Quality
+- **RMSE (Root Mean Square Error)**: Average point-to-point distance between aligned fragments.
+- **Chamfer Distance**: Bi-directional average of closest-neighbor distances.
+- **Normal Consistency**: Agreement between surface normals of aligned fracture patches.
+
+### 3. Reconstruction Completeness
+- **Completeness**: Fraction of the original artifact successfully reconstructed from the input fragments.
+- **Global Consistency**: Degree to which the full assembly maintains coherent spatial relationships without transformation conflicts or physical overlaps.
+
+### 4. System Reliability
+- Performance under real-world noise (sensor error, erosion gaps, and partial scans).
+- Scaling efficiency relative to the number of fragments ($O(n^2)$ filtering).
+
+---
+
+## 4. Experiment Log (Key Milestones)
+
+| ID | Configuration | Success | Note |
 | --- | --- | --- | --- |
-| `base_3d_01` | Default 3D pipeline | Success | Verified baseline reconstruction (71.5% completeness). |
-| `noise_robustness_01` | Gaussian noise injection | Success | Pipeline maintains 65%+ completeness with 1mm noise. |
-| `downsampling_test_01` | Adaptive Voxel vs. Uniform | - | Ongoing testing. |
-
----
-
-## 4. Evaluation and Metrics Portfolio
-All reconstruction results are quantitatively evaluated using:
-- **Registration RMSE**: Root Mean Square Error of aligned point clouds.
-- **Chamfer Distance**: Bi-directional average of closest-point distances.
-- **Match Accuracy**: Ratio of correctly predicted fragment pairs (Target ≥ 80% with labels).
-- **Reconstruction Completeness**: Proportion of fragments successfully assembled.
+| `base_3d_v1` | Default 3D FPFH pipeline | Success | Verified baseline reconstruction (71.5% completeness). |
+| `noise_test_v1` | 1mm Gaussian noise | Success | Robustness confirmed; completeness maintained at 65%+. |
+| `patch_match_v1` | Patch-level fragment matching | - | Ongoing testing on eroded datasets. |
