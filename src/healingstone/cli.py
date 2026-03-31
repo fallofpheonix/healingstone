@@ -77,9 +77,13 @@ def run_pipeline(args: argparse.Namespace) -> None:
     if effective_data_dir is None:
         LOG.error("No data directory provided.")
         sys.exit(1)
-    if not Path(effective_data_dir).exists():
-        LOG.error("Data directory not found: %s", effective_data_dir)
-        sys.exit(1)
+    data_path = Path(effective_data_dir)
+    if not data_path.exists():
+        if data_path.as_posix().endswith("data/sample"):
+            data_path.mkdir(parents=True, exist_ok=True)
+        else:
+            LOG.error("Data directory not found: %s", effective_data_dir)
+            sys.exit(1)
 
     # Initialize with default-validated config
     config = PipelineConfig(
