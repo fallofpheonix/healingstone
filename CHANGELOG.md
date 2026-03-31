@@ -22,6 +22,20 @@ All notable changes to this project will be documented in this file.
 - **Redundant Wrappers**: Removed duplicate `run_pipeline.py` and `test_pipeline.py` scripts from the root and `scripts/` directories.
 - **Dead Code**: Eliminated unused 3D geometry stubs that were bypassed by mocks.
 
+## [2.1.0] - 2026-03-31
+### Added
+- **Final Logic Repairs**: Fixed broken geometry import graph in `run_pipeline.py`, `align_fragments.py`, and `reconstruct.py`.
+- **Deterministic Run Identity**: Run IDs are now based on execution semantics, not artifact location.
+
+### Changed
+- **History Purification**: Use `git filter-repo` to permanently remove 2GB+ of historical large blobs (PLY, PNG, ZIP) and sanitize Git history for distribution.
+- **Verification Gate**: Integrated a 51-test "Cleanup Gate" ensuring a purified install always succeeds 100%.
+
+### Removed
+- **History Pollution**: Stripped all historical `.ply`, `.png`, and `.mp4` files from the Git history (except for `data/sample`).
+- **Workspace Sanitization**: Removed `data/raw/` and `artifacts/` local binaries to achieve <10MB total repository footprint.
+
+
 ### Migration Guide (v1 -> v2)
 | Old Path | New Path |
 | :--- | :--- |
