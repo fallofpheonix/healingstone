@@ -74,11 +74,10 @@ warn_unused_ignores = true
 check_untyped_defs = true
 files = [
   "src/healingstone/api/cli.py",
-  "src/healingstone/services/reconstruction_service.py",
-  "src/healingstone/config/environment.py",
   "src/healingstone/utils/runtime_info.py",
+  "src/healingstone/cli.py",
+  "src/healingstone/schema/config.py",
+  "src/healingstone/schema/metrics_schema.py",
+  "src/healingstone/io/runtime_paths.py",
   "src/healingstone/pipeline/run_pipeline.py",
-  "src/healingstone/core/runtime_config.py",
-  "src/healingstone/core/runtime_paths.py",
-  "src/healingstone/core/metrics_schema.py",
 ]
