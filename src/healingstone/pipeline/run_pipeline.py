@@ -213,10 +213,14 @@ def _resolve_run_paths(args: argparse.Namespace) -> ResolvedRunPaths:
         dataset_alias=args.dataset_alias,
         aliases=aliases,
     )
+    if isinstance(data_dir, tuple):
+        data_dir = data_dir[0]
     artifact_root = resolve_artifact_root(
         configured_output_dir=args.output_dir,
         output_dir_source=source_map.get("output_dir", "default"),
     )
+    if isinstance(artifact_root, tuple):
+        artifact_root = artifact_root[0]
     return initialize_run_layout(
         data_dir=data_dir,
         labels_csv=args.labels_csv,

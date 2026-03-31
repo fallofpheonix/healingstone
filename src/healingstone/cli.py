@@ -7,6 +7,8 @@ import logging
 import sys
 from pathlib import Path
 
+import yaml
+
 # Use absolute imports for clarity and robustness
 from healingstone.pipeline.runner import PipelineRunner
 from healingstone.pipeline.preprocessing import PreprocessingStage
@@ -15,6 +17,35 @@ from healingstone.pipeline.assembly import AssemblyStage
 from healingstone.schema.config import PipelineConfig, PreprocessingConfig, MatchingConfig
 
 LOG = logging.getLogger(__name__)
+
+
+def _load_yaml(path: Path) -> dict:
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise ValueError(f"Failed to read config file: {path}") from exc
+    return payload if isinstance(payload, dict) else {}
+
+
+def _validate_config_payload(payload: dict) -> None:
+    if "data_dir" in payload and payload["data_dir"] is not None and not isinstance(payload["data_dir"], str):
+        raise ValueError("data_dir must be a string path when provided")
+
+    if "preprocessing" in payload:
+        if not isinstance(payload["preprocessing"], dict):
+            raise ValueError("preprocessing must be a mapping")
+        allowed = set(PreprocessingConfig.model_fields.keys())
+        invalid = set(payload["preprocessing"].keys()) - allowed
+        if invalid:
+            raise ValueError(f"Unknown preprocessing keys: {sorted(invalid)}")
+
+    if "matching" in payload:
+        if not isinstance(payload["matching"], dict):
+            raise ValueError("matching must be a mapping")
+        allowed = set(MatchingConfig.model_fields.keys())
+        invalid = set(payload["matching"].keys()) - allowed
+        if invalid:
+            raise ValueError(f"Unknown matching keys: {sorted(invalid)}")
 
 
 def setup_cli_logging(level: int = logging.INFO) -> None:
@@ -35,11 +66,25 @@ def run_pipeline(args: argparse.Namespace) -> None:
     if not config_path.exists():
         LOG.error("Config file not found: %s", config_path)
         sys.exit(1)
+    try:
+        payload = _load_yaml(config_path)
+        _validate_config_payload(payload)
+    except ValueError as exc:
+        LOG.error("Invalid config: %s", exc)
+        sys.exit(1)
+
+    effective_data_dir = args.data_dir or payload.get("data_dir")
+    if effective_data_dir is None:
+        LOG.error("No data directory provided.")
+        sys.exit(1)
+    if not Path(effective_data_dir).exists():
+        LOG.error("Data directory not found: %s", effective_data_dir)
+        sys.exit(1)
 
     # Initialize with default-validated config
     config = PipelineConfig(
-        data_dir=args.data_dir or "data/sample",
-        output_dir=args.output_dir or "experiments",
+        data_dir=effective_data_dir,
+        output_dir=args.output_dir or payload.get("output_dir") or "experiments",
         preprocessing=PreprocessingConfig(),
         matching=MatchingConfig()
     )
