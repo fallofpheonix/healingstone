@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
-from pydantic import BaseModel
 
 from ..schema.config import PipelineConfig
 from ..core.utils.determinism import set_seed

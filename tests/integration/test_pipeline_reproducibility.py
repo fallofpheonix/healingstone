@@ -16,7 +16,7 @@ def run_pipeline(config_path: str, data_dir: str, output_dir: str) -> str:
     ]
     # Set PYTHONPATH to include the src directory
     env = {"PYTHONPATH": "src", "PATH": "/usr/bin:/bin"}
-    result = subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
+    subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
     
     # Extract run_id from logs or stdout
     # In a real system, we might parse the output. For simplicity, we'll look at the FS.
