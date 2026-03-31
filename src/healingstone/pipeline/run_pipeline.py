@@ -459,13 +459,13 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Reconstruct fragmented artifacts from 3D meshes or 2D images")
-    parser.add_argument("--config", default="configs/pipeline.yaml", help="Pipeline config YAML path")
-    parser.add_argument("--train-config", default="configs/train.yaml", help="Training config YAML path")
-    parser.add_argument("--dataset-manifest", default="configs/datasets.yaml", help="Dataset alias manifest YAML path")
+    parser.add_argument("--config", type=Path, default=Path("configs/pipeline.yaml"), help="Pipeline config YAML path")
+    parser.add_argument("--train-config", type=Path, default=Path("configs/train.yaml"), help="Training config YAML path")
+    parser.add_argument("--dataset-manifest", type=Path, default=Path("configs/datasets.yaml"), help="Dataset alias manifest YAML path")
 
-    parser.add_argument("--data-dir", default=None, help="Directory containing fragment .PLY/.OBJ/.PNG/.JPG files")
-    parser.add_argument("--output-dir", default=None, help="Artifact root directory")
-    parser.add_argument("--labels-csv", default=None, help="Optional labeled pair CSV (frag_a,frag_b,label)")
+    parser.add_argument("--data-dir", type=Path, default=None, help="Directory containing fragment .PLY/.OBJ/.PNG/.JPG files")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Artifact root directory")
+    parser.add_argument("--labels-csv", type=Path, default=None, help="Optional labeled pair CSV (frag_a,frag_b,label)")
     parser.add_argument("--allow-overwrite-run", action="store_true", default=None, help="Allow reuse of existing run-id directory")
 
     parser.add_argument("--sample-points", type=int, default=None)
