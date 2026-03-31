@@ -1,8 +1,8 @@
 """Performance benchmarking for the reassembly pipeline traversal."""
 
-import time
 import logging
-from typing import List
+import time
+
 import numpy as np
 
 # Mocking fragment data for benchmark

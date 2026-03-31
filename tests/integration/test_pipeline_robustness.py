@@ -1,6 +1,5 @@
 """Integration tests for pipeline robustness and failure modes."""
 
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -19,7 +18,6 @@ def run_pipeline(config_path: str, data_dir: str, output_dir: str) -> subprocess
 
 def test_invalid_config_fails(tmp_path):
     """MANDATORY: Assert that corrupted configuration fails before execution."""
-    project_root = Path(__file__).parents[2]
     invalid_config = tmp_path / "invalid_pipeline.yaml"
     
     # Intentionally corrupt config (invalid type for data_dir)
