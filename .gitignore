@@ -3,7 +3,6 @@ DataSet/
 data/raw/**
 !data/raw/
 !data/raw/3d/
-!data/raw/v1/
 data/interim/**
 data/processed/**
 !data/
@@ -19,6 +18,7 @@ data/processed/**
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.zip
 
 # Python
 __pycache__/
@@ -32,7 +32,18 @@ ENV/
 .pytest_cache/
 .ruff_cache/
 .coverage
+.coverage.*
+htmlcov/
+dist/
+build/
 *.egg-info/
+
+# Env files
+.env
+
+# IDE
+.vscode/
+.idea/
 
 # Models
 models/
@@ -52,7 +63,11 @@ artifacts/results/**
 !artifacts/models/
 artifacts/models/**
 !artifacts/models/.gitkeep
+artifacts/logs/**
+!artifacts/logs/.gitkeep
 artifacts/runs/**
+artifacts/submission/**
+artifacts/scan_run/**
 artifacts/latest
 artifacts/latest_run
 !artifacts/

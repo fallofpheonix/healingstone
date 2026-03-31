@@ -5,17 +5,16 @@ Validates 2D and 3D pipeline outputs, reproducibility, and alignment accuracy.
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
-import tempfile
+import sys
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 
-PYTHON = os.environ.get("HS_PYTHON", "python3")
+PYTHON = os.environ.get("HS_PYTHON", sys.executable)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 

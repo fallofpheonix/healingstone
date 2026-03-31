@@ -57,7 +57,7 @@ def test_precedence_cli_over_env_over_yaml(tmp_path: Path, monkeypatch: pytest.M
     train = tmp_path / "train.yaml"
     train.write_text("config_version: 1\n", encoding="utf-8")
     datasets = tmp_path / "datasets.yaml"
-    datasets.write_text("aliases:\n  3d: data/raw/v1\n", encoding="utf-8")
+    datasets.write_text("aliases:\n  3d: data/raw/3d\n", encoding="utf-8")
 
     cli = _empty_cli(cfg, train, datasets)
     cli.seed = 33

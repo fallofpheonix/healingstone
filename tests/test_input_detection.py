@@ -55,7 +55,7 @@ def test_detect_input_type_empty_raises(tmp_path: Path) -> None:
     """Test _detect_input_type raises FileNotFoundError for empty directory."""
     data_dir = tmp_path / "empty"
     data_dir.mkdir()
-    with pytest.raises(FileNotFoundError, match="No fragment files found"):
+    with pytest.raises(FileNotFoundError, match="No supported fragment files"):
         _detect_input_type(data_dir)
 
 
