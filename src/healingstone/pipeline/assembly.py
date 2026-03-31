@@ -28,7 +28,6 @@ class AssemblyStage(Stage):
         fragments = input_data.get("fragments", [])
         matches = input_data.get("matches", [])
         pair_scores = input_data.get("pair_scores", {})
-        diagnostics = input_data.get("diagnostics", {})
         
         if not fragments:
             raise ValueError("AssemblyStage requires fragments from previous stages")

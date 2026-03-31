@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from healingstone.core.geometry.features import extract_all_features
 from healingstone.ml_models.match_fragments import train_and_match_fragments
