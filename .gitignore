@@ -80,3 +80,7 @@ submission/
 test_output/
 test_output_patch/
 validation_results_*.md
+3D/
+*.PLY
+3D/
+*.PLY
