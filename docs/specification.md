@@ -1,67 +1,83 @@
-# System Specification: Healingstone
+# System Specification: Healing Stones
+
+**Healing Stones** is an automated reconstruction pipeline that transforms unstructured 3D fragment data into structured geometric relationships and globally consistent assemblies. It integrates geometric processing with machine learning to identify fracture surfaces, extract robust features, and estimate fragment poses under noise, erosion, and partial overlap.
+
+---
 
 ## 1. Project Overview
-**Healingstone** is a production-oriented reconstruction pipeline for fragmented archaeological artifacts. It supports both 3D mesh fragments (`.ply`, `.obj`) and 2D image fragments (`.png`, `.jpg`, `.tif`). The system automatically detects the input type and routes it to the appropriate pipeline.
 
-### Problem Definition
-Fragmented archaeological artifacts present a difficult reconstruction problem due to:
-- Unknown relative orientation of fragments.
-- Missing material along break surfaces.
-- Erosion and scan noise.
-- Variable fragment sizes.
+### Abstract
+Fragmented cultural artifacts such as sculptures and monuments are commonly incomplete and eroded, making manual reassembly labor-intensive. **Healing Stones** proposes a modular computational pipeline that performs automated reconstruction through surface classification, embedding-based matching, and graph-based assembly.
 
-The objective is to automatically determine:
-1. Break surfaces on each fragment.
-2. Matching fragment pairs.
-3. Relative pose transformations.
-4. Global assembly of fragments.
-
----
-
-## 2. Technical Approach
-The pipeline follows a multi-stage process to achieve reconstruction:
-
-1. **Preprocessing**: Normal estimation, decimation, and noise reduction using Open3D.
-2. **Break Surface Classification**: Identification of likely break surfaces vs. original carved surfaces.
-3. **Feature Extraction**: FPFH (Fast Point Feature Histograms) for 3D or specific 2D descriptors.
-4. **Pairwise Matching**: Pruning candidate pairs and scoring matches.
-5. **Alignment**: RANSAC + ICP for geometric registration (SE(3) estimation).
-6. **Global Assembly**: Pose Graph Optimization for final reconstruction.
+### Novel Contribution
+Unlike standard registration pipelines, **Healing Stones** introduces:
+1. **Confidence-Aware Matching**: Each candidate match is assigned a confidence score based on a weighted sum of:
+   - Geometric alignment error.
+   - Normal consistency.
+   - Overlap ratio.
+2. **Patch-Level Matching**: By operating on fracture surface patches rather than whole fragments, the system achieves robustness to size differences, improved matching under partial overlap, and reduced noise from irrelevant surfaces.
+3. **Global Assembly with Consistency Constraints**: Transitions from naive MST-based assembly to a framework incorporating:
+   - Cycle consistency checks.
+   - Confidence-weighted edge selection for transformation propagation.
+   - Rejection of conflicting spatial placements.
 
 ---
 
-## 3. Inputs and Outputs
+## 2. Technical Objectives
 
-### Inputs
-| Input | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `--data-dir` | directory | No | Defaults via dataset alias manifest |
-| fragment files | `.ply` / `.obj` / images | Yes | Mode auto-detected from files present |
-| `--labels-csv` | CSV | No | Supervised pair labels with `frag_a,frag_b,label` |
-| pipeline config | YAML | Yes | `configs/pipeline.yaml` |
-
-### Outputs
-All outputs are run-scoped and isolated under `artifacts/runs/<run_id>/`.
-
-| Output | Path | Description |
-| --- | --- | --- |
-| **Results** | `results/` | Reports, plots, and reconstructed models (`.ply`). |
-| **Models** | `models/` | Trained model weights if applicable. |
-| **Logs** | `logs/` | Detailed execution and error logs. |
-| **Cache** | `cache/` | Reusable feature/cache payloads. |
+The system is designed to:
+- **Ingest**: Support `.PLY` and `.OBJ` formats from heterogeneous sources.
+- **Preprocess**: Perform denoising (outlier filtering), downsampling (voxel-based), and normal estimation.
+- **Classify**: Identify fracture surfaces vs. original carved surfaces.
+  - **Geometric Baseline**: Threshold-based classification using curvature and normal variance.
+  - **Learning-Based Extension**: Pseudo-label fracture regions to train a point-based classifier (e.g., **PointNet++**).
+- **Extract Features**: Compute rotation-invariant descriptors.
+  - **Geometric**: **FPFH** (Fast Point Feature Histograms).
+  - **Learned**: **PointNet** or **DGCNN** embeddings via PyTorch.
+- **Match**: Predict fragment compatibility using patch-level similarity (Cosine Similarity).
+- **Align**: Estimate 6-DoF poses using feature correspondence + RANSAC for coarse alignment, followed by **ICP** for fine registration.
+- **Assemble**: Resolve global consistency using graph-based optimization (MST or Pose Graph) that propagates the high-confidence matched transformations.
 
 ---
 
-## 4. Success Conditions
-- Pipeline runs end-to-end from CLI without manual interaction.
-- Paths resolve deterministically from the project root.
-- Metrics report satisfies schema version `1`.
-- Default developer checks (pytest, ruff, mypy) pass.
+## 3. System Architecture
+
+The architecture is divided into clear functional layers to ensure modularity and extensibility:
+
+### Ingestion Layer
+- Dataset-specific loaders for varying scan properties.
+- Validation of mesh integrity and coordinate standardization.
+
+### Processing Layer
+- **Preprocessing Engine**: Denoising, voxel downsampling, and scale normalization.
+- **Surface Classification Module**: Feature-based classification of fracture regions.
+- **Feature Extraction Module**: Computation of geometric and learned descriptors.
+- **Matching & Alignment Module**: Pairwise registration and validation.
+
+### Assembly Layer
+- Graph-based representation of fragments (nodes) and validated matches (edges).
+- Pose graph optimization to propagate transformations and resolve conflicts.
+
+### Storage & Evaluation Layer
+- Structured JSON output for transformations and metadata.
+- Automated evaluation of matching accuracy, alignment error (RMSE/Chamfer), and reconstruction completeness.
+
+---
+
+## 4. Methodology (Pipeline Workflow)
+
+1. **Data Ingestion** $\rightarrow$ Standardized 3D representation.
+2. **Preprocessing** $\rightarrow$ Denoising, downsampling, and normal estimation.
+3. **Surface Classification** $\rightarrow$ Isolation of fracture surface patches.
+4. **Feature Extraction** $\rightarrow$ Encoding invariants for robust comparison.
+5. **Candidate Matching** $\rightarrow$ Filtering the search space using similarity thresholds.
+6. **Alignment (Pose Estimation)** $\rightarrow$ SE(3) transformation estimation.
+7. **Global Assembly** $\rightarrow$ Consistency-aware reconstruction.
+8. **Evaluation** $\rightarrow$ Benchmarking against ground truth metrics.
 
 ---
 
 ## 5. System Dependencies
-The system is organized into modular layers to ensure zero circular dependencies and clear boundaries.
 
 ```mermaid
 graph TD
@@ -80,7 +96,9 @@ graph TD
 
 ---
 
-## 6. Non-Goals
-- GUI or manual reconstruction tooling.
-- Archaeological interpretation of the results.
-- Guaranteed perfect reconstruction under severe erosion or missing geometry.
+## 6. Success Conditions & Metrics
+
+- **Matching Accuracy**: Precision, Recall, and F1-score for fragment identification.
+- **Alignment Quality**: Mean RMSE and Chamfer Distance within defined thresholds.
+- **Reconstruction Completeness**: Fraction of the original artifact successfully reconstructed.
+- **Workability**: Full CI passing (pytest, ruff, mypy) and deterministic CLI execution.

@@ -1,54 +1,51 @@
-# Project Status: Healingstone
+# Project Status: Healing Stones
 
-## 1. Current State Summary
-The project has undergone a significant architectural restructuring. Core logic is now modularized into `src/healingstone/`, and runtime paths have been consolidated under `data/raw/3d` and `artifacts/`.
+## 1. Current State Summary (Pre-GSoC)
+The project has established a foundational architectural baseline. A minimal functional prototype exists that handles basic 3D reconstruction tasks.
 
-- **Restructured Structure**:
-  - `src/healingstone/`: Modularized package.
-  - `data/raw/3d`: Canonical 3D data root.
-  - `artifacts/`: Consolidated generated output root.
-  - `docs/`: Unified documentation repository.
-
-- **Verified Baseline**: 
-  - Canonical 3D run (17 fragments) completed successfully.
-  - Default developer loop (`pytest`, `ruff`, `mypy`) passing.
-  - Open3D-dependent 3D runtime remains environment-gated.
+### Pre-GSoC Accomplishments
+- **Ingestion**: Functional loading of `.PLY` and `.OBJ` files via Open3D.
+- **Preprocessing**: Implementation of point cloud loading, downsampling, and normal estimation.
+- **Feature Extraction**: Preliminary feature extraction using FPFH descriptors.
+- **Alignment**: Basic pairwise alignment using ICP.
+- **Workability**: CLI entry points established; test suite and lint/type checks (pytest, ruff, mypy) passing.
 
 ---
 
-## 2. Active Tasks
-The current execution frontier is focused on the following:
+## 2. Detailed Project Timeline
 
-- [x] Restructure project for scalability.
-- [x] Consolidate data and output directories.
-- [x] Modularize source code (separation of orchestration, visualization, and metrics).
-- [x] Create GPT Context Pack manifest (`CONTEXT_INDEX.md`).
-- [/] Integrate fragmented documentation files.
-- [ ] Implement robust 2D-to-3D cross-modal alignment features.
-- [ ] Optimize PointNet++ inference latency.
+### Community Bonding Period
+- **Dataset Analysis**: Understand fragment size distribution and noise levels.
+- **Strategy Finalization**: Finalize fracture surface detection (Heuristics vs. ML) and assembly logic (MST vs. Pose Graph).
+- **Evaluation Setup**: Define metrics (Chamfer, RMSE) and prepare a small annotated ground truth dataset.
+
+### Phase 1: Ingestion & Preprocessing (Weeks 1–2)
+- [ ] Support batch processing and heterogeneous scan properties.
+- [ ] Standardize normalization (scale, denoising, sampling).
+
+### Phase 2: Surface Classification (Weeks 3–4)
+- [ ] Implement curvature and normal variance-based break surface detection.
+- [ ] **ML Extension**: Pseudo-label fracture regions and train a PointNet++ classifier.
+
+### Phase 3: Feature Extraction & Matching (Weeks 5–6)
+- [ ] Implement learned embeddings (PointNet/DGCNN) to improve robustness.
+- [ ] Develop similarity-based candidate matching using nearest-neighbor search.
+
+### Phase 4: Alignment & Pose Estimation (Weeks 7–8)
+- [ ] Robust pairwise alignment under noise and partial overlap using RANSAC.
+- [ ] Refinement metrics for SE(3) estimation quality.
+
+### Phase 5: Global Assembly (Weeks 9–10)
+- [ ] Build the fragment graph (Nodes = Fragments, Edges = Validated Matches).
+- [ ] Implement Pose Graph Optimization to resolve global consistency and conflicts.
+
+### Phase 6: Final Evaluation & Refinement (Weeks 11–12)
+- [ ] Full pipeline validation on annotated datasets.
+- [ ] System documentation, refactoring, and final submission-ready bundle.
 
 ---
 
-## 3. Roadmap & Milestones
-
-### Milestone 1: Structural Scalability (Current)
-- [x] Centralize all generated output under `artifacts/`.
-- [x] Standardize data ingestion via `data/raw/`.
-- [x] Comprehensive documentation cleanup and integration.
-
-### Milestone 2: Evaluation & Metrics
-- [ ] Implement ground-truth validation for supervised datasets.
-- [ ] Integrate automated performance regression testing.
-- [ ] Schema validation for all output artifacts.
-
-### Milestone 3: Advanced Reconstruction
-- [ ] Multi-fragment global assembly (Pose Graph Optimization).
-- [ ] 2D fragment alignment with color-matching features.
-- [ ] GSoC 2026 submission-ready bundle generation.
-
----
-
-## 4. Known Issues & Blockers
-- **Open3D Compatibility**: Full 3D runtime requires Python 3.10–3.12.
-- **Labeled Data**: No canonical labeled dataset is currently tracked in the repository.
-- **2D Integration**: 2D pipeline is currently less mature than the 3D pipeline.
+## 3. Known Issues & Blockers
+- **Open3D-Torch Coupling**: Learned features require specific PyTorch-Open3D interaction environments.
+- **Missing Global Assembly**: Current assembly is primarily pairwise; global consistency logic is the current focus.
+- **Erosion Modeling**: Handling large gaps in severely eroded fragments remains a technical challenge.
