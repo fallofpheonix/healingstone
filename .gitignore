@@ -84,3 +84,44 @@ validation_results_*.md
 *.PLY
 3D/
 *.PLY
+# OS/editor
+*.pyo
+.venv/
+# Node/JS
+node_modules/
+coverage/
+.env.*
+!.env.example
+# Dart/Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+# Local data, models, and generated artifacts
+*.db
+*.db.bak
+*.sqlite
+*.sqlite3
+*.log
+*.jsonl
+*.csv.tmp
+out/
+out_old/
+outputs/
+artifacts/runs/
+artifacts/checkpoints/
+models/**/*.pt
+models/**/*.pth
+models/**/*.bin
+*.onnx
+*.mp3
+*.wav
+*.m4a
+# Native build products
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+bench/bench_*
+tests/test_*
